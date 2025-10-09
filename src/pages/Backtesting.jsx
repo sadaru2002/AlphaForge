@@ -11,7 +11,6 @@ const API_BASE_URL = 'http://161.118.218.33:5000/api';
 const Backtesting = () => {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [history, setHistory] = useState([]);
   const [selectedTrade, setSelectedTrade] = useState(null);
   const [tradeReplay, setTradeReplay] = useState(null);
   
@@ -30,20 +29,6 @@ const Backtesting = () => {
 
   const darkCard = 'bg-[#1A1F35] border border-[#2A2F45]';
 
-  useEffect(() => {
-    fetchHistory();
-  }, []);
-
-  const fetchHistory = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/backtest/history`);
-      if (response.data.success) {
-        setHistory(response.data.history);
-      }
-    } catch (error) {
-      console.error('Error fetching history:', error);
-    }
-  };
 
   const runBacktest = async () => {
     setLoading(true);
