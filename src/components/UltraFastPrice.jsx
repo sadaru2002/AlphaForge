@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 
 const API_BASE_URL = 'http://161.118.218.33:5000/api';
@@ -15,7 +15,7 @@ const UltraFastPrice = () => {
   const [responseTime, setResponseTime] = useState(0);
   const intervalRef = useRef(null);
 
-  const fetchRealPrice = async () => {
+  const fetchRealPrice = useCallback(async () => {
     try {
       setIsUpdating(true);
       const startTime = Date.now();
@@ -59,7 +59,7 @@ const UltraFastPrice = () => {
     } finally {
       setIsUpdating(false);
     }
-  };
+  }, [updateCount]);
 
   useEffect(() => {
     // Initial fetch
@@ -73,7 +73,7 @@ const UltraFastPrice = () => {
         clearInterval(intervalRef.current);
       }
     };
-  }, []);
+  }, [fetchRealPrice]);
 
   // Force refresh every 3 seconds to prevent stale data
   useEffect(() => {
@@ -83,7 +83,7 @@ const UltraFastPrice = () => {
     }, 3000);
 
     return () => clearInterval(forceRefresh);
-  }, []);
+  }, [fetchRealPrice]);
 
   return (
     <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">

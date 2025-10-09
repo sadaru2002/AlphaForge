@@ -12,7 +12,6 @@ const Backtesting = () => {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState([]);
-  const [isRunning, setIsRunning] = useState(false);
   const [selectedTrade, setSelectedTrade] = useState(null);
   const [tradeReplay, setTradeReplay] = useState(null);
   
@@ -48,7 +47,6 @@ const Backtesting = () => {
 
   const runBacktest = async () => {
     setLoading(true);
-    setIsRunning(true);
     
     try {
       const response = await axios.post(`${API_BASE_URL}/backtest/advanced/run`, params);
@@ -66,34 +64,9 @@ const Backtesting = () => {
       alert('Failed to run backtest. Please try again.');
     } finally {
       setLoading(false);
-      setIsRunning(false);
     }
   };
 
-  const runVectorBTBacktest = async () => {
-    setLoading(true);
-    setIsRunning(true);
-    
-    try {
-      console.log('Running VectorBT backtest (ULTRA FAST!)...');
-      const response = await axios.post(`${API_BASE_URL}/backtest/vectorbt/run`, params);
-      if (response.data) {
-        if (response.data.error) {
-          console.error('VectorBT backtest error:', response.data.error);
-          alert(`VectorBT backtest failed: ${response.data.error}`);
-        } else {
-          console.log('VectorBT backtest completed!', response.data);
-          setResults(response.data);
-        }
-      }
-    } catch (error) {
-      console.error('Error running VectorBT backtest:', error);
-      alert('Failed to run VectorBT backtest. Please try again.');
-    } finally {
-      setLoading(false);
-      setIsRunning(false);
-    }
-  };
 
   const viewTradeReplay = async (tradeNumber) => {
     try {
