@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Play, RotateCcw, BarChart3, TrendingUp, AlertTriangle, DollarSign, Eye, FileText, Download, Settings } from 'lucide-react';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend } from 'chart.js';
