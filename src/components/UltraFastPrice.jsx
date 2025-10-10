@@ -42,7 +42,7 @@ const UltraFastPrice = () => {
     const interval = setInterval(fetchPrices, 10000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [symbols]);
 
   if (loading) {
     return (

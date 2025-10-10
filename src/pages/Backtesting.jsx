@@ -9,7 +9,6 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 const Backtesting = () => {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [selectedTrade, setSelectedTrade] = useState(null);
   const [tradeReplay, setTradeReplay] = useState(null);
   
   // Backtest parameters
@@ -522,7 +521,7 @@ const Backtesting = () => {
                   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-[#1A1F35] rounded-xl p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
                       <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-xl font-semibold">Trade #{selectedTrade} Replay</h3>
+                        <h3 className="text-xl font-semibold">Trade Replay</h3>
                         <button
                           onClick={() => setTradeReplay(null)}
                           className="text-gray-400 hover:text-white"
