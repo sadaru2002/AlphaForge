@@ -7,13 +7,11 @@ import Navbar from './components/Navbar';
 import SignalsTable from './components/SignalsTable';
 import Toasts from './components/Toasts';
 import UltraFastPrice from './components/UltraFastPrice';
-import axios from 'axios';
+import apiService from './services/api';
 import './App.css';
 import { Routes, Route } from 'react-router-dom';
 import Journal from './pages/Journal';
 import Backtesting from './pages/Backtesting';
-
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://161.118.218.33:5000/api';
 
 function App() {
   const [signals, setSignals] = useState([]);
@@ -32,23 +30,56 @@ function App() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get latest signals
-        const signalsRes = await axios.get(`${API_BASE_URL}/signals/latest`);
-        setSignals(signalsRes.data);
+        // Get health status
+        const healthRes = await apiService.health();
+        setStatus({
+          ...healthRes,
+          total_signals_today: healthRes.records || 0,
+          status: healthRes.status || 'unknown'
+        });
 
-        // Get performance stats
-        const statsRes = await axios.get(`${API_BASE_URL}/stats`);
-        setStats(statsRes.data);
+        // Get symbols and their signals
+        const symbolsRes = await apiService.getSymbols();
+        const symbols = symbolsRes.symbols || ['GBPUSD', 'XAUUSD', 'USDJPY'];
+        
+        // Get signals for all symbols
+        const signalsPromises = symbols.map(symbol => apiService.getSignals(symbol));
+        const signalsResults = await Promise.allSettled(signalsPromises);
+        
+        const allSignals = signalsResults
+          .map((result, index) => {
+            if (result.status === 'fulfilled') {
+              return {
+                ...result.value,
+                symbol: symbols[index],
+                timestamp: new Date().toISOString()
+              };
+            }
+            return null;
+          })
+          .filter(signal => signal !== null);
 
-        // Get bot status
-        const statusRes = await axios.get(`${API_BASE_URL}/status`);
-        setStatus(statusRes.data);
+        setSignals(allSignals);
+
+        // Calculate stats from signals
+        const calculatedStats = {
+          total_signals: allSignals.length,
+          buy_signals: allSignals.filter(s => s.signal === 'BUY').length,
+          sell_signals: allSignals.filter(s => s.signal === 'SELL').length,
+          hold_signals: allSignals.filter(s => s.signal === 'HOLD').length,
+          avg_confidence: allSignals.reduce((sum, s) => sum + (s.confidence || 0), 0) / allSignals.length || 0
+        };
+        setStats(calculatedStats);
 
         setLoading(false);
       } catch (error) {
         console.error('Error fetching data:', error);
         // Show toast and ensure UI renders even if initial fetch fails
-        pushToast({ type: 'error', title: 'Failed to fetch data', message: 'Backend API is unreachable or returned an error.' });
+        pushToast({ 
+          type: 'error', 
+          title: 'Failed to fetch data', 
+          message: 'Backend API is unreachable or returned an error.' 
+        });
         setLoading(false);
       }
     };
@@ -56,8 +87,8 @@ function App() {
     // Initial fetch
     fetchData();
 
-    // Auto-refresh every 1 second for ultra-fast updates
-    const interval = setInterval(fetchData, 1000);
+    // Auto-refresh every 30 seconds for live updates
+    const interval = setInterval(fetchData, 30000);
 
     return () => clearInterval(interval);
   }, []);

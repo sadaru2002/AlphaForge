@@ -2,11 +2,9 @@ import React, { useState } from 'react';
 import { Play, RotateCcw, BarChart3, TrendingUp, AlertTriangle, DollarSign, Eye, FileText, Download, Settings } from 'lucide-react';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend } from 'chart.js';
-import axios from 'axios';
+import apiService from '../services/api';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend);
-
-const API_BASE_URL = 'http://161.118.218.33:5000/api';
 
 const Backtesting = () => {
   const [results, setResults] = useState(null);
@@ -34,19 +32,30 @@ const Backtesting = () => {
     setLoading(true);
     
     try {
-      const response = await axios.post(`${API_BASE_URL}/backtest/advanced/run`, params);
-      if (response.data) {
-        if (response.data.error) {
-          console.error('Backtest error:', response.data.error);
-          // Show error message to user
-          alert(`Backtest failed: ${response.data.error}`);
-        } else {
-          setResults(response.data);
-        }
+      // Use the new API service for quick backtest
+      const response = await apiService.runBacktest(params.symbol, 30);
+      if (response) {
+        // Transform the response to match expected format
+        const transformedResults = {
+          summary: {
+            total_return: response.total_return || 0,
+            win_rate: response.win_rate || 0,
+            max_drawdown: response.max_drawdown || 0,
+            profit_factor: response.sharpe_ratio || 0,
+            final_balance: 10000 + (response.total_return || 0) * 100,
+            total_trades: response.total_trades || 0,
+            winning_trades: response.winning_trades || 0,
+            losing_trades: response.losing_trades || 0
+          },
+          trades: [], // Backend doesn't return individual trades yet
+          equity_curve: [], // Backend doesn't return equity curve yet
+          monthly_returns: [] // Backend doesn't return monthly returns yet
+        };
+        setResults(transformedResults);
       }
     } catch (error) {
       console.error('Error running backtest:', error);
-      alert('Failed to run backtest. Please try again.');
+      setResults({ error: 'Failed to run backtest. Please try again.' });
     } finally {
       setLoading(false);
     }
