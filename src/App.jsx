@@ -30,16 +30,21 @@ function App() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get health status
+        console.log('Fetching data from backend...');
+        
+        // Get health status first
         const healthRes = await apiService.health();
+        console.log('Health check successful:', healthRes);
+        
         setStatus({
           ...healthRes,
           total_signals_today: healthRes.records || 0,
           status: healthRes.status || 'unknown'
         });
 
-        // Get symbols and their signals
+        // Get symbols
         const symbolsRes = await apiService.getSymbols();
+        console.log('Symbols fetched:', symbolsRes);
         const symbols = symbolsRes.symbols || ['GBPUSD', 'XAUUSD', 'USDJPY'];
         
         // Get signals for all symbols
@@ -54,11 +59,14 @@ function App() {
                 symbol: symbols[index],
                 timestamp: new Date().toISOString()
               };
+            } else {
+              console.error(`Failed to fetch signals for ${symbols[index]}:`, result.reason);
+              return null;
             }
-            return null;
           })
           .filter(signal => signal !== null);
 
+        console.log('Signals fetched:', allSignals);
         setSignals(allSignals);
 
         // Calculate stats from signals
@@ -72,13 +80,24 @@ function App() {
         setStats(calculatedStats);
 
         setLoading(false);
+        console.log('Data fetch completed successfully');
       } catch (error) {
         console.error('Error fetching data:', error);
-        // Show toast and ensure UI renders even if initial fetch fails
+        
+        // Show more specific error message
+        let errorMessage = 'Backend API is unreachable or returned an error.';
+        if (error.message.includes('Failed to fetch')) {
+          errorMessage = 'Cannot connect to backend server. Check if the server is running.';
+        } else if (error.message.includes('404')) {
+          errorMessage = 'Backend endpoint not found. Check API configuration.';
+        } else if (error.message.includes('500')) {
+          errorMessage = 'Backend server error. Please try again later.';
+        }
+        
         pushToast({ 
           type: 'error', 
           title: 'Failed to fetch data', 
-          message: 'Backend API is unreachable or returned an error.' 
+          message: errorMessage
         });
         setLoading(false);
       }

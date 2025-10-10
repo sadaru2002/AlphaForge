@@ -1,14 +1,19 @@
 // API service for backend communication
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://161.118.218.33:5000';
 
+// Remove any trailing /api from the URL
+const cleanApiUrl = API_BASE_URL.replace(/\/api$/, '');
+
 class ApiService {
   constructor() {
-    this.baseURL = API_BASE_URL;
+    this.baseURL = cleanApiUrl;
   }
 
   async request(endpoint, options = {}) {
     try {
       const url = `${this.baseURL}${endpoint}`;
+      console.log(`API Request: ${url}`); // Debug log
+      
       const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
@@ -18,10 +23,14 @@ class ApiService {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`API Error ${response.status}: ${errorText}`);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
 
-      return await response.json();
+      const data = await response.json();
+      console.log(`API Response: ${endpoint}`, data); // Debug log
+      return data;
     } catch (error) {
       console.error(`API request failed for ${endpoint}:`, error);
       throw error;
