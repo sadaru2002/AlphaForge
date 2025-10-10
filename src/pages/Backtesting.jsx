@@ -64,11 +64,9 @@ const Backtesting = () => {
 
   const viewTradeReplay = async (tradeNumber) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/backtest/trade/${tradeNumber}/replay`);
-      if (response.data) {
-        setSelectedTrade(tradeNumber);
-        setTradeReplay(response.data);
-      }
+      // Note: This endpoint doesn't exist in current backend yet
+      console.log('Trade replay not implemented yet for trade:', tradeNumber);
+      alert('Trade replay feature not implemented yet');
     } catch (error) {
       console.error('Error fetching trade replay:', error);
     }
@@ -76,17 +74,9 @@ const Backtesting = () => {
 
   const exportTradeReport = async (tradeNumber) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/backtest/trade/${tradeNumber}/export`, {
-        responseType: 'blob'
-      });
-      
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `trade_${tradeNumber}_report.html`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      // Note: This endpoint doesn't exist in current backend yet
+      console.log('Trade export not implemented yet for trade:', tradeNumber);
+      alert('Trade export feature not implemented yet');
     } catch (error) {
       console.error('Error exporting trade report:', error);
     }
@@ -94,20 +84,9 @@ const Backtesting = () => {
 
   const exportResults = async (format = 'csv') => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/backtest/export`, {
-        backtest_id: `${params.symbol}_${params.startDate}_${params.endDate}`,
-        format: format
-      }, {
-        responseType: 'blob'
-      });
-      
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `backtest_results.${format}`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      // Note: This endpoint doesn't exist in current backend yet
+      console.log('Results export not implemented yet for format:', format);
+      alert('Results export feature not implemented yet');
     } catch (error) {
       console.error('Error exporting results:', error);
     }
