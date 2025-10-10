@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import apiService from '../services/api';
 
 const UltraFastPrice = () => {
@@ -6,7 +6,7 @@ const UltraFastPrice = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const symbols = ['GBPUSD', 'XAUUSD', 'USDJPY'];
+  const symbols = useMemo(() => ['GBPUSD', 'XAUUSD', 'USDJPY'], []);
 
   useEffect(() => {
     const fetchPrices = async () => {
