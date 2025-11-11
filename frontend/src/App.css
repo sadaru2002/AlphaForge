@@ -1,0 +1,45 @@
+/* AlphaForge Trading System Styles */
+
+.App {
+  text-align: center;
+}
+
+.transition-smooth {
+  transition: all 0.3s ease;
+}
+
+.text-gradient-green {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1d29;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2e3e;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3e4e;
+}
+
+/* Loading animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}

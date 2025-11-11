@@ -1,4 +1,4 @@
-// API Configuration - Always use VPS Backend
-const API_BASE_URL = 'http://161.118.218.33:5000';  // Oracle VPS Backend
+// API Configuration - Development Backend
+const API_BASE_URL = 'http://localhost:5000';  // Local Development Backend
 
 export default API_BASE_URL;
