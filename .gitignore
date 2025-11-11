@@ -97,22 +97,3 @@ coverage/
 
 # Local Netlify folder
 .netlify
-
-# Exclude remaining old project directories
-backend/
-frontend/
-
-# Database files from old project
-*.db
-
-# Old deployment files
-*.ps1
-*.bat
-*.pem
-HOW_IT_WORKS.md
-MANUAL_DEPLOY.md
-CORRECT_WORKFLOW.md
-vps_api_docs.html
-
-# Allow public/index.html (essential for React)
-!public/index.html
