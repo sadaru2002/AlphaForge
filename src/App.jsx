@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef }
-from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Dashboard from './components/Dashboard';
 import Chart from './components/Chart';
 import Stats from './components/Stats';
@@ -205,4 +204,3 @@ function App() {
 }
 
 export default App;
-
