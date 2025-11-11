@@ -1,32 +1,66 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
 const Navbar = ({ status }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const location = useLocation();
   const isRunning = Boolean(status?.running);
+  const backendStatus = status?.backend || 'offline';
+  const isBackendOnline = backendStatus === 'online' && isRunning;
+
+  const navItems = [
+    { name: 'Dashboard', path: '/', icon: '🏠' },
+    { name: 'Signals', path: '/signals', icon: '📊' },
+    { name: 'Journal', path: '/journal', icon: '📚' },
+    { name: 'Backtesting', path: '/backtesting', icon: '📈' },
+    { name: 'Settings', path: '/settings', icon: '⚙️' },
+  ];
 
   return (
-    <nav className="bg-gray-800 border-b border-gray-700">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="text-blue-400 text-2xl font-bold">AlphaForge</div>
-          <span className="text-gray-400 hidden sm:inline">GBP/USD Trading Bot</span>
+    <nav className="bg-bg-main border-b border-border-subtle h-18 sticky top-0 z-50">
+      <div className="container mx-auto px-6 h-full flex items-center justify-between">
+        {/* Logo */}
+        <div className="flex items-center gap-3">
+          <div className="text-h3 font-bold">
+            <span className="text-gradient-green">Alpha</span>
+            <span className="text-text-primary">Forge</span>
+          </div>
         </div>
-        <div className="flex items-center space-x-6">
-          <div className="flex items-center text-sm">
-            <span
-              className={`w-2.5 h-2.5 rounded-full mr-2 ${
-                isRunning ? 'bg-green-500 animate-pulse' : 'bg-red-500'
-              }`}
-            />
-            <span className="text-gray-300">{isRunning ? 'Active' : 'Stopped'}</span>
+
+        {/* Right Section */}
+        <div className="flex items-center gap-6">
+          {/* System Status */}
+          <div className="flex items-center gap-2 px-3 py-2 bg-bg-card rounded-lg border border-border-subtle">
+            <div className={`w-2 h-2 rounded-full ${
+              isBackendOnline ? 'bg-accent-primary animate-pulse-green' : 'bg-accent-danger'
+            }`}></div>
+            <span className="text-small font-medium text-text-primary">
+              {isBackendOnline ? 'Online' : 'Offline'}
+            </span>
           </div>
-          <div className="hidden md:flex items-center space-x-4 text-sm text-gray-300">
-            <a className="hover:text-blue-400" href="/">Dashboard</a>
-            <a className="hover:text-blue-400" href="/journal">Journal</a>
-            <a className="hover:text-blue-400" href="/backtesting">Backtesting</a>
-            <a className="hover:text-blue-400" href="#signals">Signals</a>
-            <a className="hover:text-blue-400" href="#stats">Stats</a>
-            <a className="hover:text-blue-400" href="#chart">Chart</a>
-          </div>
+        </div>
+      </div>
+
+      {/* Mobile Navigation */}
+      <div className="lg:hidden border-t border-border-subtle">
+        <div className="container mx-auto px-4 py-2 flex justify-around">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-smooth ${
+                  isActive 
+                    ? 'bg-accent-primary text-bg-main' 
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                <span className="text-lg">{item.icon}</span>
+                <span className="text-tiny font-medium">{item.name}</span>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </nav>
@@ -34,5 +68,6 @@ const Navbar = ({ status }) => {
 };
 
 export default Navbar;
+
 
 

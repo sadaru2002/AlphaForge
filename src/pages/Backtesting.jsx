@@ -1,94 +1,145 @@
-import React, { useState } from 'react';
-import { Play, RotateCcw, BarChart3, TrendingUp, AlertTriangle, DollarSign, Eye, FileText, Download, Settings } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Play, RotateCcw, BarChart3, TrendingUp, AlertTriangle, DollarSign, Eye, FileText, Download, Settings, Code, Save } from 'lucide-react';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend } from 'chart.js';
 import apiService from '../services/api';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend);
 
+const API_BASE_URL = 'http://localhost:5000/api';
+
 const Backtesting = () => {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [isRunning, setIsRunning] = useState(false);
+  const [selectedTrade, setSelectedTrade] = useState(null);
   const [tradeReplay, setTradeReplay] = useState(null);
+  const [strategyTemplate, setStrategyTemplate] = useState('');
+  const [availableSymbols, setAvailableSymbols] = useState([]);
   
   // Backtest parameters
   const [params, setParams] = useState({
-    name: 'Premium Strategy Test',
+    name: 'VectorBT Strategy Test',
     symbol: 'GBPUSD',
-    startDate: '2025-09-01',  // September 1, 2025
-    endDate: '2025-09-30',    // September 30, 2025 (1 month)
-    timeframe: '5min',
+    startDate: '2024-01-01',
+    endDate: '2024-12-31',
+    timeframe: '1H',
     initialBalance: 10000,
     riskPercent: 0.5,
-    minConfirmations: 7,  // Premium quality: 7/10 confluence required
-    useVectorBT: true  // NEW: Use VectorBT by default (ULTRA-FAST!)
+    strategyCode: ''
   });
 
   const darkCard = 'bg-[#1A1F35] border border-[#2A2F45]';
 
+  useEffect(() => {
+    fetchHistory();
+    loadStrategyTemplate();
+    loadAvailableSymbols();
+  }, []);
+
+  const fetchHistory = async () => {
+    try {
+      // Mock history for now
+      setHistory([]);
+    } catch (error) {
+      console.error('Error fetching history:', error);
+    }
+  };
+
+  const loadStrategyTemplate = async () => {
+    try {
+      const response = await apiService.getStrategyTemplate();
+      if (response.success) {
+        setStrategyTemplate(response.template);
+        setParams(prev => ({ ...prev, strategyCode: response.template }));
+      }
+    } catch (error) {
+      console.error('Error loading strategy template:', error);
+    }
+  };
+
+  const loadAvailableSymbols = async () => {
+    try {
+      const response = await apiService.getAvailableSymbols();
+      if (response.success) {
+        setAvailableSymbols(response.symbols);
+      }
+    } catch (error) {
+      console.error('Error loading symbols:', error);
+    }
+  };
 
   const runBacktest = async () => {
+    if (!params.strategyCode.trim()) {
+      alert('Please enter strategy code before running backtest');
+      return;
+    }
+
     setLoading(true);
+    setIsRunning(true);
     
     try {
-      // Use the new API service for quick backtest
-      const response = await apiService.runBacktest(params.symbol, 30);
-      if (response) {
-        // Transform the response to match expected format
-        const transformedResults = {
-          summary: {
-            total_return: response.total_return || 0,
-            win_rate: response.win_rate || 0,
-            max_drawdown: response.max_drawdown || 0,
-            profit_factor: response.sharpe_ratio || 0,
-            final_balance: 10000 + (response.total_return || 0) * 100,
-            total_trades: response.total_trades || 0,
-            winning_trades: response.winning_trades || 0,
-            losing_trades: response.losing_trades || 0
-          },
-          trades: [], // Backend doesn't return individual trades yet
-          equity_curve: [], // Backend doesn't return equity curve yet
-          monthly_returns: [] // Backend doesn't return monthly returns yet
-        };
-        setResults(transformedResults);
+      const response = await apiService.runBacktest(
+        params.strategyCode,
+        params.symbol,
+        params.startDate,
+        params.endDate
+      );
+      
+      if (response.success) {
+        setResults(response.results);
+      } else {
+        console.error('Backtest error:', response.error);
+        alert(`Backtest failed: ${response.error}`);
       }
     } catch (error) {
       console.error('Error running backtest:', error);
-      setResults({ error: 'Failed to run backtest. Please try again.' });
+      alert('Failed to run backtest. Please try again.');
     } finally {
       setLoading(false);
+      setIsRunning(false);
     }
   };
 
+  const saveStrategy = async () => {
+    if (!params.name.trim() || !params.strategyCode.trim()) {
+      alert('Please enter strategy name and code before saving');
+      return;
+    }
+
+    try {
+      const response = await apiService.saveStrategy(
+        params.name,
+        'User-defined strategy',
+        params.strategyCode,
+        [params.symbol]
+      );
+      
+      if (response.success) {
+        alert('Strategy saved successfully!');
+      } else {
+        alert(`Failed to save strategy: ${response.error}`);
+      }
+    } catch (error) {
+      console.error('Error saving strategy:', error);
+      alert('Failed to save strategy. Please try again.');
+    }
+  };
 
   const viewTradeReplay = async (tradeNumber) => {
-    try {
-      // Note: This endpoint doesn't exist in current backend yet
-      console.log('Trade replay not implemented yet for trade:', tradeNumber);
-      alert('Trade replay feature not implemented yet');
-    } catch (error) {
-      console.error('Error fetching trade replay:', error);
-    }
+    // Placeholder for trade replay functionality
+    alert('Trade replay functionality coming soon!');
   };
 
   const exportTradeReport = async (tradeNumber) => {
-    try {
-      // Note: This endpoint doesn't exist in current backend yet
-      console.log('Trade export not implemented yet for trade:', tradeNumber);
-      alert('Trade export feature not implemented yet');
-    } catch (error) {
-      console.error('Error exporting trade report:', error);
-    }
+    // Placeholder for trade report export functionality
+    alert('Trade report export functionality coming soon!');
   };
 
   const exportResults = async (format = 'csv') => {
-    try {
-      // Note: This endpoint doesn't exist in current backend yet
-      console.log('Results export not implemented yet for format:', format);
-      alert('Results export feature not implemented yet');
-    } catch (error) {
-      console.error('Error exporting results:', error);
-    }
+    // Placeholder for results export functionality
+    alert('Results export functionality coming soon!');
   };
 
   const equityChartData = results?.equity_curve ? {
@@ -168,10 +219,11 @@ const Backtesting = () => {
                     onChange={(e) => setParams({...params, symbol: e.target.value})}
                     className="w-full bg-[#1E2139] border border-[#2A2F45] rounded-lg px-3 py-2"
                   >
-                    <option value="GBPUSD">GBP/USD</option>
-                    <option value="EURUSD">EUR/USD</option>
-                    <option value="USDJPY">USD/JPY</option>
-                    <option value="AUDUSD">AUD/USD</option>
+                    {availableSymbols.map(symbol => (
+                      <option key={symbol.symbol} value={symbol.symbol}>
+                        {symbol.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -232,59 +284,63 @@ const Backtesting = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">Min Confirmations (2-9)</label>
-                  <input
-                    type="number"
-                    min="2"
-                    max="9"
-                    value={params.minConfirmations}
-                    onChange={(e) => setParams({...params, minConfirmations: parseInt(e.target.value)})}
-                    className="w-full bg-[#1E2139] border border-[#2A2F45] rounded-lg px-3 py-2"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">Higher = Better quality signals</p>
-                </div>
-
-                {/* VectorBT Toggle */}
-                <div className="col-span-2">
-                  <label className="flex items-center space-x-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={params.useVectorBT}
-                      onChange={(e) => setParams({...params, useVectorBT: e.target.checked})}
-                      className="w-5 h-5 text-cyan-600 bg-[#1E2139] border-[#2A2F45] rounded focus:ring-cyan-500"
-                    />
-                    <div>
-                      <span className="text-sm font-medium">⚡ Use VectorBT (Ultra-Fast!)</span>
-                      <p className="text-xs text-gray-400">10-100x faster with 50+ professional metrics</p>
-                    </div>
-                  </label>
-                </div>
-
-                {/* Premium Backtest Button */}
-                <button
-                  onClick={runBacktest}
-                  disabled={loading}
-                  className={`w-full col-span-2 py-3 px-4 rounded-lg font-semibold flex items-center justify-center ${
-                    loading 
-                      ? 'bg-gray-600 cursor-not-allowed' 
-                      : params.useVectorBT 
-                        ? 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700'
+                <div className="flex gap-2">
+                  <button
+                    onClick={runBacktest}
+                    disabled={loading}
+                    className={`flex-1 py-3 px-4 rounded-lg font-semibold flex items-center justify-center ${
+                      loading 
+                        ? 'bg-gray-600 cursor-not-allowed' 
                         : 'bg-blue-600 hover:bg-blue-700'
-                  }`}
-                >
-                  {loading ? (
-                    <>
-                      <RotateCcw className="mr-2 animate-spin" size={20} />
-                      Running Backtest...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="mr-2" size={20} />
-                      {params.useVectorBT ? '⚡ Run VectorBT Backtest' : 'Run Premium Backtest'}
-                    </>
-                  )}
-                </button>
+                    }`}
+                  >
+                    {loading ? (
+                      <>
+                        <RotateCcw className="mr-2 animate-spin" size={20} />
+                        Running...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="mr-2" size={20} />
+                        Run Backtest
+                      </>
+                    )}
+                  </button>
+                  
+                  <button
+                    onClick={saveStrategy}
+                    className="px-4 py-3 rounded-lg font-semibold bg-green-600 hover:bg-green-700 flex items-center"
+                  >
+                    <Save className="mr-2" size={20} />
+                    Save
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Strategy Code Editor */}
+            <div className={`${darkCard} rounded-xl p-6`}>
+              <h2 className="text-xl font-semibold mb-4 flex items-center">
+                <Code className="mr-2" size={20} />
+                Strategy Code
+              </h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Python Strategy Code</label>
+                  <textarea
+                    value={params.strategyCode}
+                    onChange={(e) => setParams({...params, strategyCode: e.target.value})}
+                    className="w-full bg-[#1E2139] border border-[#2A2F45] rounded-lg px-3 py-2 h-64 font-mono text-sm"
+                    placeholder="Enter your Python strategy code here..."
+                  />
+                </div>
+                
+                <div className="text-xs text-gray-400">
+                  <p>• Must define a <code className="bg-gray-700 px-1 rounded">generate_signals(df)</code> function</p>
+                  <p>• Return DataFrame with 'signal' column ('BUY', 'SELL', 'HOLD')</p>
+                  <p>• Optional: 'confidence', 'entry', 'stop_loss', 'take_profit' columns</p>
+                </div>
               </div>
             </div>
 
@@ -521,7 +577,7 @@ const Backtesting = () => {
                   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-[#1A1F35] rounded-xl p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
                       <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-xl font-semibold">Trade Replay</h3>
+                        <h3 className="text-xl font-semibold">Trade #{selectedTrade} Replay</h3>
                         <button
                           onClick={() => setTradeReplay(null)}
                           className="text-gray-400 hover:text-white"

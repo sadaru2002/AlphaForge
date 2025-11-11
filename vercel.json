@@ -20,8 +20,6 @@
     }
   ],
   "env": {
-    "REACT_APP_API_BASE_URL": "http://161.118.218.33:5000/api"
+    "REACT_APP_API_BASE_URL": "http://161.118.218.33:5000"
   }
 }
-
-

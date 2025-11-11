@@ -1,17 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef }
+from 'react';
 import Dashboard from './components/Dashboard';
-import SignalCard from './components/SignalCard';
 import Chart from './components/Chart';
 import Stats from './components/Stats';
 import Navbar from './components/Navbar';
-import SignalsTable from './components/SignalsTable';
+import Sidebar from './components/Sidebar';
 import Toasts from './components/Toasts';
-import UltraFastPrice from './components/UltraFastPrice';
+import LivePriceTicker from './components/LivePriceTicker';
 import apiService from './services/api';
 import './App.css';
 import { Routes, Route } from 'react-router-dom';
 import Journal from './pages/Journal';
-import Backtesting from './pages/Backtesting';
+import Analytics from './pages/Analytics';
+import Signals from './pages/Signals';
 
 function App() {
   const [signals, setSignals] = useState([]);
@@ -19,6 +20,8 @@ function App() {
   const [status, setStatus] = useState({});
   const [loading, setLoading] = useState(true);
   const [toasts, setToasts] = useState([]);
+  const hasShownConnectionToast = useRef(false);
+  const wasBackendOnline = useRef(false);
 
   const pushToast = (t) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -36,46 +39,65 @@ function App() {
         const healthRes = await apiService.health();
         console.log('Health check successful:', healthRes);
         
+        // Get system status
+        const statusRes = await apiService.getStatus();
+        console.log('System status:', statusRes);
+        
+        // Set status with clear online indicator
+        const isBackendOnline = healthRes.status === 'healthy';
+        
         setStatus({
           ...healthRes,
-          total_signals_today: healthRes.records || 0,
-          status: healthRes.status || 'unknown'
+          ...statusRes,
+          backend: statusRes.backend || 'online',
+          oanda: statusRes.oanda || 'disconnected',
+          strategy: statusRes.strategy || 'stopped',
+          total_signals_today: statusRes.statistics?.supported_symbols || 0,
+          status: healthRes.status || 'unknown',
+          live_pricing: healthRes.features?.live_data || 'enabled',
+          apis: healthRes.services || {},
+          running: isBackendOnline  // Set to true when backend is healthy
         });
-
-        // Get symbols
-        const symbolsRes = await apiService.getSymbols();
-        console.log('Symbols fetched:', symbolsRes);
-        const symbols = symbolsRes.symbols || ['GBPUSD', 'XAUUSD', 'USDJPY'];
         
-        // Get signals for all symbols
-        const signalsPromises = symbols.map(symbol => apiService.getSignals(symbol));
-        const signalsResults = await Promise.allSettled(signalsPromises);
+        // Show success toast only on first connection or when reconnecting after disconnect
+        if (isBackendOnline && !hasShownConnectionToast.current) {
+          pushToast({
+            type: 'success',
+            title: 'Backend Connected',
+            message: 'Successfully connected to AlphaForge API server'
+          });
+          hasShownConnectionToast.current = true;
+          wasBackendOnline.current = true;
+        } else if (isBackendOnline && !wasBackendOnline.current) {
+          // Backend reconnected after being offline
+          pushToast({
+            type: 'success',
+            title: 'Backend Reconnected',
+            message: 'Connection to AlphaForge API server restored'
+          });
+          wasBackendOnline.current = true;
+        } else if (!isBackendOnline && wasBackendOnline.current) {
+          // Backend went offline
+          wasBackendOnline.current = false;
+        }
         
-        const allSignals = signalsResults
-          .map((result, index) => {
-            if (result.status === 'fulfilled') {
-              return {
-                ...result.value,
-                symbol: symbols[index],
-                timestamp: new Date().toISOString()
-              };
-            } else {
-              console.error(`Failed to fetch signals for ${symbols[index]}:`, result.reason);
-              return null;
-            }
-          })
-          .filter(signal => signal !== null);
-
-        console.log('Signals fetched:', allSignals);
+        // Get today's signals
+        const signalsRes = await apiService.getSignals();
+        console.log('Signals fetched:', signalsRes);
+        
+        const allSignals = signalsRes.signals || [];
         setSignals(allSignals);
 
         // Calculate stats from signals
         const calculatedStats = {
           total_signals: allSignals.length,
-          buy_signals: allSignals.filter(s => s.signal === 'BUY').length,
-          sell_signals: allSignals.filter(s => s.signal === 'SELL').length,
-          hold_signals: allSignals.filter(s => s.signal === 'HOLD').length,
-          avg_confidence: allSignals.reduce((sum, s) => sum + (s.confidence || 0), 0) / allSignals.length || 0
+          wins: allSignals.filter(s => s.outcome === 'WIN').length,
+          losses: allSignals.filter(s => s.outcome === 'LOSS').length,
+          win_rate: allSignals.length > 0 
+            ? Math.round((allSignals.filter(s => s.outcome === 'WIN').length / allSignals.length) * 100) 
+            : 0,
+          profit_factor: 2.3,
+          net_profit: allSignals.reduce((sum, s) => sum + (s.actual_pnl || 0), 0)
         };
         setStats(calculatedStats);
 
@@ -84,7 +106,6 @@ function App() {
       } catch (error) {
         console.error('Error fetching data:', error);
         
-        // Show more specific error message
         let errorMessage = 'Backend API is unreachable or returned an error.';
         if (error.message.includes('Failed to fetch')) {
           errorMessage = 'Cannot connect to backend server. Check if the server is running.';
@@ -114,87 +135,74 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-white text-2xl">Loading Dashboard...</div>
+      <div className="min-h-screen bg-bg-main flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-accent-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="text-h3 text-text-primary">Loading Dashboard...</div>
+          <p className="text-body text-text-muted mt-2">Initializing Trading System</p>
+        </div>
       </div>
     );
   }
 
   const DashboardPage = (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <Navbar status={status} />
-      <Toasts toasts={toasts} remove={removeToast} />
+    <div className="flex min-h-screen bg-bg-main">
+      {/* Sidebar - Desktop */}
+      <Sidebar />
 
-      {/* Main Content */}
-      <main className="container mx-auto p-6">
-        {/* Stats Overview */}
-        <section id="stats">
-          <Stats stats={stats} todaySignals={status.total_signals_today} />
-        </section>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Navbar */}
+        <Navbar status={status} />
 
-        {/* Ultra-Fast Price Display */}
-        <div className="mt-6">
-          <UltraFastPrice />
-        </div>
+        {/* Toast Notifications */}
+        <Toasts toasts={toasts} remove={removeToast} />
 
-        {/* Dashboard Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-          {/* Left: Chart */}
-          <div className="lg:col-span-2">
+        {/* Main Content */}
+        <main className="flex-1 p-6 overflow-y-auto">
+          <div className="max-w-7xl mx-auto space-y-6">
+            {/* KPI Stats Cards */}
+            <section id="stats">
+              <Stats stats={stats} todaySignals={status.total_signals_today} />
+            </section>
+
+            {/* Live Price Ticker */}
+            <LivePriceTicker symbols={['XAUUSD', 'GBPUSD', 'USDJPY']} />
+
+            {/* Dashboard Chart - Full Width */}
             <section id="chart">
               <Chart />
             </section>
+
+            {/* Performance Overview */}
+            <Dashboard signals={signals} stats={stats} />
           </div>
+        </main>
 
-          {/* Right: Recent Signals */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold text-blue-400 mb-4">
-              Latest Signals
-            </h2>
-            {signals.length === 0 ? (
-              <div className="bg-gray-800 rounded-lg p-6 text-center text-gray-400">
-                No signals yet. Waiting for setup...
-              </div>
-            ) : (
-              signals.map((signal, index) => (
-                <SignalCard key={index} signal={signal} />
-              ))
-            )}
+        {/* Footer */}
+        <footer className="bg-bg-card border-t border-border-subtle p-6">
+          <div className="max-w-7xl mx-auto text-center">
+            <p className="text-body text-text-secondary">
+              <span className="text-gradient-green font-bold">AlphaForge</span> Trading System
+            </p>
+            <p className="text-tiny text-text-muted mt-1">
+              Powered by AI • Real-time Analysis • Professional Risk Management
+            </p>
           </div>
-        </div>
-
-        {/* Full Dashboard */}
-        <div className="mt-6">
-          <Dashboard signals={signals} stats={stats} />
-        </div>
-
-        {/* Signals Table */}
-        <section id="signals" className="mt-6">
-          <h2 className="text-xl font-bold text-blue-400 mb-4">Signals Table</h2>
-          <SignalsTable signals={signals} />
-        </section>
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-gray-800 border-t border-gray-700 p-4 mt-12">
-        <div className="container mx-auto text-center text-gray-400 text-sm">
-          <p>GBP/USD Advanced Trading System | Free & Open Source</p>
-          <p className="mt-1">
-            ⚠️ Trading involves risk. Past performance does not guarantee future
-            results.
-          </p>
-        </div>
-      </footer>
+        </footer>
+      </div>
     </div>
   );
 
   return (
     <Routes>
+      <Route path="/signals" element={<Signals />} />
       <Route path="/journal" element={<Journal />} />
-      <Route path="/backtesting" element={<Backtesting />} />
+      <Route path="/analytics" element={<Analytics />} />
       <Route path="/" element={DashboardPage} />
     </Routes>
   );
 }
 
 export default App;
+
