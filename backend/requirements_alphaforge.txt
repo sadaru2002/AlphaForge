@@ -1,0 +1,35 @@
+# ALGOX Strategy - Python Requirements
+
+# Core Data Processing
+pandas>=2.0.0
+numpy>=1.24.0
+pytz>=2024.1
+
+# Technical Analysis
+pandas-ta>=0.3.14b
+
+# Oanda API
+oandapyV20>=0.7.2
+
+# Utilities
+python-dotenv>=1.0.0
+
+# Web Framework
+fastapi>=0.104.0
+uvicorn>=0.24.0
+sqlalchemy>=2.0.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Optional for advanced features
+plotly>=5.14.0
+
+# Testing (optional)
+pytest>=7.3.0
+pytest-cov>=4.1.0
+httpx>=0.25.0  # For FastAPI TestClient
+
+# Gemini AI for signal validation
+google-generativeai>=0.3.0

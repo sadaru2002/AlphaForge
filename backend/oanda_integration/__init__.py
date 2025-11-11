@@ -1,1 +1,0 @@
-# OANDA Integration Package

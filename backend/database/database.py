@@ -1,19 +1,44 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from .models import Base
-from ..config import settings
+import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from database.signal_models import Base
 import logging
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
 # Try to create database engine, but make it optional
 try:
-    engine = create_engine(
-        settings.database_url,
-        pool_pre_ping=True,
-        pool_recycle=300,
-        echo=settings.DEBUG
-    )
+    # Use PostgreSQL or SQLite
+    database_url = "sqlite:///trading.db"
+    
+    # Configure engine based on database type
+    if database_url.startswith('postgresql'):
+        engine = create_engine(
+            database_url,
+            pool_pre_ping=True,
+            pool_recycle=300,
+            pool_size=10,
+            max_overflow=20,
+            echo=False  # Set to True for debugging
+        )
+        logger.info("✅ PostgreSQL database engine created")
+    else:
+        engine = create_engine(
+            database_url,
+            pool_pre_ping=True,
+            pool_recycle=300,
+            connect_args={"check_same_thread": False},  # SQLite specific
+            echo=False  # Set to True for debugging
+        )
+        logger.info("✅ SQLite database engine created")
+    
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     DATABASE_AVAILABLE = True
     logger.info("✅ Database engine created successfully")
