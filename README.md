@@ -60,21 +60,21 @@ If Gemini approves the trade:
 
 ```mermaid
 graph TD
-    User[User / Frontend] -->|HTTP| Nginx[Nginx Reverse Proxy]
-    Nginx -->|API Requests| Backend[Backend API (FastAPI)]
+    User["User / Frontend"] -->|HTTP| Nginx["Nginx Reverse Proxy"]
+    Nginx -->|"API Requests"| Backend["Backend API (FastAPI)"]
     
-    subgraph Docker Network
+    subgraph "Docker Network"
         Backend
-        Scheduler[Signal Scheduler]
-        DB[(SQLite Database)]
+        Scheduler["Signal Scheduler"]
+        DB[("SQLite Database")]
     end
     
-    Scheduler -->|1. Fetch Data| OANDA[OANDA API]
-    Scheduler -->|2. Analyze & Vote| Scheduler
-    Scheduler -->|3. Validate Signal| Gemini[Gemini AI]
-    Gemini -->|4. Decision| Scheduler
-    Scheduler -->|5. Store| DB
-    Scheduler -->|6. Notify| Telegram
+    Scheduler -->|"1. Fetch Data"| OANDA["OANDA API"]
+    Scheduler -->|"2. Analyze & Vote"| Scheduler
+    Scheduler -->|"3. Validate Signal"| Gemini["Gemini AI"]
+    Gemini -->|"4. Decision"| Scheduler
+    Scheduler -->|"5. Store"| DB
+    Scheduler -->|"6. Notify"| Telegram
 ```
 
 ---
