@@ -12,23 +12,47 @@ AlphaForge is a sophisticated automated trading platform designed for the OANDA 
 
 ---
 
-## 🌟 Key Features
+## 📖 How It Works: The AlphaForge Pipeline
 
-### 🧠 Intelligent Analysis
-*   **Multi-Timeframe Confluence:** Simultaneously analyzes M5, M15, and H1 timeframes to confirm trends.
-*   **Adaptive Regime Detection:** Automatically identifies market conditions (Trending Bullish/Bearish, Ranging, Volatile) and adjusts strategy parameters dynamically.
-*   **Gemini AI Validation:** Uses Google's Gemini Pro AI to validate technical setups, filtering out false positives based on complex pattern recognition.
+AlphaForge operates on a 5-minute cycle, continuously scanning the market for high-probability opportunities. Here is the step-by-step process of how a signal is generated, validated, and delivered.
 
-### ⚡ Robust Architecture
-*   **Microservices Design:** Separated Backend (FastAPI) and Scheduler (Strategy Engine) containers.
-*   **Dockerized Deployment:** Fully containerized for consistent deployment across any environment (Local/VPS/Cloud).
-*   **Resilient Networking:** Internal Docker network for secure inter-service communication.
-*   **Automated Recovery:** Self-healing containers with automatic restart policies.
+### 1. 📥 Data Ingestion (Multi-Timeframe)
+Every cycle, the system fetches live candlestick data from OANDA for three distinct timeframes to ensure a complete market view:
+*   **M5 (5-Minute):** For tactical entry timing.
+*   **M15 (15-Minute):** For immediate trend confirmation.
+*   **H1 (1-Hour):** For dominant trend direction and major support/resistance.
 
-### 📊 Comprehensive Monitoring
-*   **Real-Time Dashboard:** React-based frontend for monitoring active signals and system health.
-*   **Telegram Integration:** Instant notifications for new signals and trade management updates.
-*   **Detailed Logging:** Extensive logging of all analysis cycles and decision logic.
+### 2. 🧠 Market Regime Detection
+Before looking for signals, the system identifies the current "weather" of the market. It classifies the market into one of several regimes:
+*   **Trending Bullish/Bearish:** Strong directional movement (Ideal for trend-following).
+*   **Ranging/Sideways:** Price moving between bounds (Ideal for mean reversion).
+*   **Volatile:** High unpredictability (System tightens risk or stands aside).
+
+*Technicals used:* ADX (Trend Strength), ATR (Volatility), and EMA alignment.
+
+### 3. ⚡ Signal Generation (The Voting Engine)
+The system uses a **weighted voting mechanism** rather than simple crossovers. Multiple indicators cast "votes" on whether to Buy, Sell, or Hold.
+*   **Trend Indicators:** EMA Ribbon (8, 21, 55), ALMA (Arnaud Legoux Moving Average).
+*   **Momentum:** RSI (Relative Strength Index), Stochastic Oscillator.
+*   **Volatility:** Bollinger Bands (for breakouts or mean reversion).
+*   **Volume:** Volume Flow Indicator (VFI) to confirm price movement validity.
+
+A signal is only proposed if the **Confidence Score exceeds 60%** and there is **confluence** across timeframes (e.g., M5 and H1 agree).
+
+### 4. 🤖 Gemini AI Validation (The "Hedge Fund Analyst")
+This is AlphaForge's unique edge. Raw signals are **not** immediately traded. They are packaged into a prompt and sent to Google's **Gemini Pro AI**.
+*   **The Prompt:** Contains technical data, regime context, key levels, and the proposed trade.
+*   **The AI's Job:** Gemini analyzes the setup like a human analyst. It checks for:
+    *   Contradictory patterns (e.g., buying into major resistance).
+    *   Macro sentiment alignment.
+    *   Risk-to-reward logic.
+*   **The Verdict:** Gemini returns a `CONFIRM` or `REJECT` decision along with a reasoning summary.
+
+### 5. 🎯 Execution & Notification
+If Gemini approves the trade:
+1.  **Dynamic Risk Management:** Stop Loss (SL) and Take Profit (TP) are calculated based on market volatility (ATR).
+2.  **Database Logging:** The full signal details are saved to the SQLite database.
+3.  **Telegram Alert:** A formatted notification is instantly sent to your Telegram channel with entry, SL, TP, and the AI's reasoning.
 
 ---
 
@@ -45,10 +69,12 @@ graph TD
         DB[(SQLite Database)]
     end
     
-    Scheduler -->|Generate Signals| Backend
-    Scheduler -->|Fetch Data| OANDA[OANDA API]
-    Scheduler -->|Validate| Gemini[Gemini AI]
-    Backend -->|Store/Retrieve| DB
+    Scheduler -->|1. Fetch Data| OANDA[OANDA API]
+    Scheduler -->|2. Analyze & Vote| Scheduler
+    Scheduler -->|3. Validate Signal| Gemini[Gemini AI]
+    Gemini -->|4. Decision| Scheduler
+    Scheduler -->|5. Store| DB
+    Scheduler -->|6. Notify| Telegram
 ```
 
 ---
@@ -79,8 +105,9 @@ graph TD
     # AI Configuration
     GEMINI_API_KEY=your_gemini_key
     
-    # System
-    FLASK_ENV=production
+    # Telegram
+    TELEGRAM_BOT_TOKEN=your_bot_token
+    TELEGRAM_CHAT_ID=your_chat_id
     ```
 
 3.  **Deploy with Docker**
