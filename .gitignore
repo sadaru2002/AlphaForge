@@ -105,6 +105,10 @@ coverage/
 # Backtest Results
 *.html
 *.json
+!package.json
+!package-lock.json
+!vercel.json
+!frontend/public/
 *.csv
 backtest_results/
 
