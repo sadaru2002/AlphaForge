@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Activity, Target, Award, AlertCircle, BarChart3, PieChart, Zap, Calendar, DollarSign, Percent, Clock, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { TrendingUp, TrendingDown, Activity, Target, BarChart3, PieChart, Zap, DollarSign, Clock, ArrowUpRight } from 'lucide-react';
 import { Line, Bar, Doughnut, Radar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, RadialLinearScale, Tooltip, Legend } from 'chart.js';
 
@@ -7,7 +7,6 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 
 const Analytics = () => {
   const [timeframe, setTimeframe] = useState('7d');
-  const [selectedMetric, setSelectedMetric] = useState('all');
 
   // Performance metrics - all start at zero for live trading
   const metrics = {
@@ -156,11 +155,10 @@ const Analytics = () => {
           <button
             key={tf}
             onClick={() => setTimeframe(tf)}
-            className={`px-4 py-2 rounded-lg transition-smooth ${
-              timeframe === tf
+            className={`px-4 py-2 rounded-lg transition-smooth ${timeframe === tf
                 ? 'bg-accent-primary text-bg-main'
                 : 'bg-bg-card text-text-secondary hover:bg-bg-elevated'
-            }`}
+              }`}
           >
             {tf}
           </button>

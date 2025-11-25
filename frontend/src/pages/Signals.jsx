@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Activity, Filter, Download, RefreshCw, Clock, Target, DollarSign, BarChart3, CheckCircle, XCircle, Clock3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, Filter, Download, RefreshCw, Target, DollarSign, BarChart3, CheckCircle, XCircle } from 'lucide-react';
 import apiService from '../services/api';
 
 const Signals = () => {
@@ -36,10 +36,10 @@ const Signals = () => {
     if (filter === 'closed' && signal.status !== 'CLOSED') return false;
     if (filter === 'winners' && signal.outcome !== 'WIN') return false;
     if (filter === 'losers' && signal.outcome === 'LOSS') return false;
-    
+
     // Symbol filter
     if (symbolFilter !== 'all' && signal.symbol !== symbolFilter) return false;
-    
+
     return true;
   });
 
@@ -64,7 +64,7 @@ const Signals = () => {
     losers: signals.filter(s => s.outcome === 'LOSS').length,
     winRate: signals.length > 0 ? ((signals.filter(s => s.outcome === 'WIN').length / signals.filter(s => s.outcome).length) * 100).toFixed(1) : 0,
     totalProfit: signals.reduce((sum, s) => sum + (s.actual_pnl || 0), 0),
-    avgProfit: signals.filter(s => s.outcome === 'WIN').length > 0 
+    avgProfit: signals.filter(s => s.outcome === 'WIN').length > 0
       ? (signals.filter(s => s.outcome === 'WIN').reduce((sum, s) => sum + (s.actual_pnl || 0), 0) / signals.filter(s => s.outcome === 'WIN').length).toFixed(2)
       : 0,
     avgLoss: signals.filter(s => s.outcome === 'LOSS').length > 0
@@ -163,11 +163,10 @@ const Signals = () => {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-4 py-2 rounded-lg capitalize transition-smooth ${
-                  filter === f
+                className={`px-4 py-2 rounded-lg capitalize transition-smooth ${filter === f
                     ? 'bg-accent-primary text-bg-main'
                     : 'bg-bg-elevated text-text-secondary hover:bg-bg-hover'
-                }`}
+                  }`}
               >
                 {f}
               </button>
@@ -327,9 +326,8 @@ const SignalRow = ({ signal, onClick }) => {
         <span className="font-semibold text-text-primary">{signal.symbol}</span>
       </td>
       <td className="px-4 py-3">
-        <span className={`flex items-center gap-1 ${
-          signal.direction === 'BUY' ? 'text-accent-primary' : 'text-accent-danger'
-        }`}>
+        <span className={`flex items-center gap-1 ${signal.direction === 'BUY' ? 'text-accent-primary' : 'text-accent-danger'
+          }`}>
           {signal.direction === 'BUY' ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
           {signal.direction}
         </span>
@@ -376,7 +374,7 @@ const SignalDetailsModal = ({ signal, onClose }) => {
             ✕
           </button>
         </div>
-        
+
         <div className="p-6 space-y-6">
           {/* Basic Info */}
           <div className="grid grid-cols-2 gap-4">

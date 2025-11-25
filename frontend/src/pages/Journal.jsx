@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { Download, Plus, Trash2, FileDown, FileSpreadsheet, Image, X, Save, Upload, TrendingUp, TrendingDown, Target, Award, Activity, DollarSign, Percent, BarChart3 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import apiService from '../services/api';
+import 'jspdf-autotable';
 
 const Journal = () => {
   const [rowData, setRowData] = useState([]);
@@ -28,8 +28,8 @@ const Journal = () => {
 
   // Column definitions with delete button
   const columnDefs = useMemo(() => ([
-    { 
-      headerName: '', 
+    {
+      headerName: '',
       field: 'actions',
       width: 60,
       cellRenderer: (params) => (
@@ -59,8 +59,8 @@ const Journal = () => {
     { headerName: 'R-Value', field: 'r', sortable: true, filter: true, editable: true, width: 100 },
     { headerName: 'Setup', field: 'setup', sortable: true, filter: true, editable: true, width: 140 },
     { headerName: 'Session', field: 'session', sortable: true, filter: true, editable: true, width: 110 },
-    { 
-      headerName: 'Screenshot', 
+    {
+      headerName: 'Screenshot',
       field: 'screenshot_entry',
       width: 110,
       cellRenderer: (params) => (
@@ -77,10 +77,10 @@ const Journal = () => {
         )
       )
     },
-  ]), []);
+  ]), [handleDelete]);
 
-  const defaultColDef = useMemo(() => ({ 
-    resizable: true, 
+  const defaultColDef = useMemo(() => ({
+    resizable: true,
     minWidth: 90,
     suppressHeaderMenuButton: true,
     flex: 0
@@ -114,7 +114,7 @@ const Journal = () => {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this trade?')) return;
-    
+
     try {
       await fetch(`http://localhost:5000/api/journal/entries/${id}`, {
         method: 'DELETE'
@@ -156,10 +156,10 @@ const Journal = () => {
   };
 
   const onExportCSV = () => {
-    const headers = ['Open Time','Type','Lots','Symbol','Entry','S/L','T/P','Close Time','Exit','Pips','P/L','MAE','Duration','R-Value','Setup','Session'];
+    const headers = ['Open Time', 'Type', 'Lots', 'Symbol', 'Entry', 'S/L', 'T/P', 'Close Time', 'Exit', 'Pips', 'P/L', 'MAE', 'Duration', 'R-Value', 'Setup', 'Session'];
     const lines = [headers.join(',')];
     filteredRowData.forEach((r) => {
-      const row = [r.openTime,r.type,r.lots,r.symbol,r.entry,r.sl,r.tp,r.closeTime,r.exit,r.pips,r.pl,r.mae,r.duration,r.r,r.setup,r.session]
+      const row = [r.openTime, r.type, r.lots, r.symbol, r.entry, r.sl, r.tp, r.closeTime, r.exit, r.pips, r.pl, r.mae, r.duration, r.r, r.setup, r.session]
         .map((v) => (v == null ? '' : String(v).includes(',') ? `"${String(v)}"` : String(v)));
       lines.push(row.join(','));
     });
@@ -183,20 +183,20 @@ const Journal = () => {
     doc.text('Trading Journal', 14, 15);
     doc.setFontSize(10);
     doc.text(`Period: ${filters.from} to ${filters.to}`, 14, 22);
-    
+
     const tableData = filteredRowData.map((r) => [
       r.openTime, r.type, r.lots, r.symbol, r.entry, r.sl, r.tp,
       r.closeTime, r.exit, r.pips, r.pl, r.mae, r.duration, r.r, r.setup
     ]);
-    
+
     doc.autoTable({
       startY: 28,
-      head: [['Open','Type','Lots','Symbol','Entry','S/L','T/P','Close','Exit','Pips','P/L','MAE','Duration','R','Setup']],
+      head: [['Open', 'Type', 'Lots', 'Symbol', 'Entry', 'S/L', 'T/P', 'Close', 'Exit', 'Pips', 'P/L', 'MAE', 'Duration', 'R', 'Setup']],
       body: tableData,
       styles: { fontSize: 7 },
       headStyles: { fillColor: [16, 185, 129] }
     });
-    
+
     doc.save(`journal-${filters.from}-${filters.to}.pdf`);
   };
 
@@ -291,7 +291,7 @@ const Journal = () => {
           <input
             type="date"
             value={filters.from}
-            onChange={(e) => setFilters({...filters, from: e.target.value})}
+            onChange={(e) => setFilters({ ...filters, from: e.target.value })}
             className="w-full px-4 py-2.5 rounded-lg transition-all"
             style={{
               backgroundColor: '#1A1F2E',
@@ -305,7 +305,7 @@ const Journal = () => {
           <input
             type="date"
             value={filters.to}
-            onChange={(e) => setFilters({...filters, to: e.target.value})}
+            onChange={(e) => setFilters({ ...filters, to: e.target.value })}
             className="w-full px-4 py-2.5 rounded-lg transition-all"
             style={{
               backgroundColor: '#1A1F2E',
@@ -318,7 +318,7 @@ const Journal = () => {
           <label className="block text-sm text-text-secondary mb-1">Pair</label>
           <select
             value={filters.pair}
-            onChange={(e) => setFilters({...filters, pair: e.target.value})}
+            onChange={(e) => setFilters({ ...filters, pair: e.target.value })}
             className="w-full px-4 py-2.5 rounded-lg transition-all cursor-pointer"
             style={{
               backgroundColor: '#1A1F2E',
@@ -334,7 +334,7 @@ const Journal = () => {
           <label className="block text-sm text-text-secondary mb-1">Setup</label>
           <select
             value={filters.setup}
-            onChange={(e) => setFilters({...filters, setup: e.target.value})}
+            onChange={(e) => setFilters({ ...filters, setup: e.target.value })}
             className="w-full px-4 py-2.5 rounded-lg transition-all cursor-pointer"
             style={{
               backgroundColor: '#1A1F2E',
@@ -350,7 +350,7 @@ const Journal = () => {
           <label className="block text-sm text-text-secondary mb-1">Session</label>
           <select
             value={filters.session}
-            onChange={(e) => setFilters({...filters, session: e.target.value})}
+            onChange={(e) => setFilters({ ...filters, session: e.target.value })}
             className="w-full px-4 py-2.5 rounded-lg transition-all cursor-pointer"
             style={{
               backgroundColor: '#1A1F2E',
@@ -596,7 +596,7 @@ const AddTradeModal = ({ onClose, onSave, pairs, setups, sessions }) => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData({...formData, screenshot_entry: reader.result});
+        setFormData({ ...formData, screenshot_entry: reader.result });
       };
       reader.readAsDataURL(file);
     }
@@ -604,20 +604,20 @@ const AddTradeModal = ({ onClose, onSave, pairs, setups, sessions }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     try {
       const response = await fetch('http://localhost:5000/api/journal/entries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.detail || 'Failed to save entry');
       }
-      
+
       if (data.success) {
         onSave();
         onClose();
@@ -649,7 +649,7 @@ const AddTradeModal = ({ onClose, onSave, pairs, setups, sessions }) => {
                 <input
                   type="datetime-local"
                   value={formData.open_time}
-                  onChange={(e) => setFormData({...formData, open_time: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, open_time: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-lg transition-all"
                   style={{
                     backgroundColor: '#1A1F2E',
@@ -663,7 +663,7 @@ const AddTradeModal = ({ onClose, onSave, pairs, setups, sessions }) => {
                 <label className="block text-sm text-text-secondary mb-2">Symbol *</label>
                 <select
                   value={formData.symbol}
-                  onChange={(e) => setFormData({...formData, symbol: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, symbol: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-lg transition-all cursor-pointer"
                   style={{
                     backgroundColor: '#1A1F2E',
@@ -679,7 +679,7 @@ const AddTradeModal = ({ onClose, onSave, pairs, setups, sessions }) => {
                 <label className="block text-sm text-text-secondary mb-2">Type *</label>
                 <select
                   value={formData.trade_type}
-                  onChange={(e) => setFormData({...formData, trade_type: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, trade_type: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-lg transition-all cursor-pointer"
                   style={{
                     backgroundColor: '#1A1F2E',
@@ -701,7 +701,7 @@ const AddTradeModal = ({ onClose, onSave, pairs, setups, sessions }) => {
                   type="number"
                   step="0.01"
                   value={formData.lots}
-                  onChange={(e) => setFormData({...formData, lots: parseFloat(e.target.value)})}
+                  onChange={(e) => setFormData({ ...formData, lots: parseFloat(e.target.value) })}
                   className="w-full px-4 py-2.5 rounded-lg transition-all"
                   style={{
                     backgroundColor: '#1A1F2E',
@@ -717,7 +717,7 @@ const AddTradeModal = ({ onClose, onSave, pairs, setups, sessions }) => {
                   type="number"
                   step="0.00001"
                   value={formData.entry_price}
-                  onChange={(e) => setFormData({...formData, entry_price: parseFloat(e.target.value)})}
+                  onChange={(e) => setFormData({ ...formData, entry_price: parseFloat(e.target.value) })}
                   className="w-full px-4 py-2.5 rounded-lg transition-all"
                   style={{
                     backgroundColor: '#1A1F2E',
@@ -733,7 +733,7 @@ const AddTradeModal = ({ onClose, onSave, pairs, setups, sessions }) => {
                   type="number"
                   step="0.00001"
                   value={formData.exit_price}
-                  onChange={(e) => setFormData({...formData, exit_price: parseFloat(e.target.value)})}
+                  onChange={(e) => setFormData({ ...formData, exit_price: parseFloat(e.target.value) })}
                   className="w-full px-4 py-2.5 rounded-lg transition-all"
                   style={{
                     backgroundColor: '#1A1F2E',
@@ -751,7 +751,7 @@ const AddTradeModal = ({ onClose, onSave, pairs, setups, sessions }) => {
                   type="number"
                   step="0.00001"
                   value={formData.stop_loss}
-                  onChange={(e) => setFormData({...formData, stop_loss: parseFloat(e.target.value)})}
+                  onChange={(e) => setFormData({ ...formData, stop_loss: parseFloat(e.target.value) })}
                   className="w-full px-4 py-2.5 rounded-lg transition-all"
                   style={{
                     backgroundColor: '#1A1F2E',
@@ -766,7 +766,7 @@ const AddTradeModal = ({ onClose, onSave, pairs, setups, sessions }) => {
                   type="number"
                   step="0.00001"
                   value={formData.take_profit}
-                  onChange={(e) => setFormData({...formData, take_profit: parseFloat(e.target.value)})}
+                  onChange={(e) => setFormData({ ...formData, take_profit: parseFloat(e.target.value) })}
                   className="w-full px-4 py-2.5 rounded-lg transition-all"
                   style={{
                     backgroundColor: '#1A1F2E',
@@ -780,7 +780,7 @@ const AddTradeModal = ({ onClose, onSave, pairs, setups, sessions }) => {
                 <input
                   type="datetime-local"
                   value={formData.close_time}
-                  onChange={(e) => setFormData({...formData, close_time: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, close_time: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-lg transition-all"
                   style={{
                     backgroundColor: '#1A1F2E',
@@ -798,7 +798,7 @@ const AddTradeModal = ({ onClose, onSave, pairs, setups, sessions }) => {
                   type="number"
                   step="0.1"
                   value={formData.pips}
-                  onChange={(e) => setFormData({...formData, pips: parseFloat(e.target.value)})}
+                  onChange={(e) => setFormData({ ...formData, pips: parseFloat(e.target.value) })}
                   className="w-full px-4 py-2.5 rounded-lg transition-all"
                   style={{
                     backgroundColor: '#1A1F2E',
@@ -813,7 +813,7 @@ const AddTradeModal = ({ onClose, onSave, pairs, setups, sessions }) => {
                   type="number"
                   step="0.01"
                   value={formData.profit_loss}
-                  onChange={(e) => setFormData({...formData, profit_loss: parseFloat(e.target.value)})}
+                  onChange={(e) => setFormData({ ...formData, profit_loss: parseFloat(e.target.value) })}
                   className="w-full px-4 py-2.5 rounded-lg transition-all"
                   style={{
                     backgroundColor: '#1A1F2E',
@@ -828,7 +828,7 @@ const AddTradeModal = ({ onClose, onSave, pairs, setups, sessions }) => {
                   type="number"
                   step="0.01"
                   value={formData.mae}
-                  onChange={(e) => setFormData({...formData, mae: parseFloat(e.target.value)})}
+                  onChange={(e) => setFormData({ ...formData, mae: parseFloat(e.target.value) })}
                   className="w-full px-4 py-2.5 rounded-lg transition-all"
                   style={{
                     backgroundColor: '#1A1F2E',
@@ -843,7 +843,7 @@ const AddTradeModal = ({ onClose, onSave, pairs, setups, sessions }) => {
                   type="number"
                   step="0.1"
                   value={formData.r_value}
-                  onChange={(e) => setFormData({...formData, r_value: parseFloat(e.target.value)})}
+                  onChange={(e) => setFormData({ ...formData, r_value: parseFloat(e.target.value) })}
                   className="w-full px-4 py-2.5 rounded-lg transition-all"
                   style={{
                     backgroundColor: '#1A1F2E',
@@ -859,7 +859,7 @@ const AddTradeModal = ({ onClose, onSave, pairs, setups, sessions }) => {
                 <label className="block text-sm text-text-secondary mb-2">Trade Setup</label>
                 <select
                   value={formData.trade_setup}
-                  onChange={(e) => setFormData({...formData, trade_setup: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, trade_setup: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-lg transition-all cursor-pointer"
                   style={{
                     backgroundColor: '#1A1F2E',
@@ -874,7 +874,7 @@ const AddTradeModal = ({ onClose, onSave, pairs, setups, sessions }) => {
                 <label className="block text-sm text-text-secondary mb-2">Session</label>
                 <select
                   value={formData.session}
-                  onChange={(e) => setFormData({...formData, session: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, session: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-lg transition-all cursor-pointer"
                   style={{
                     backgroundColor: '#1A1F2E',
@@ -891,7 +891,7 @@ const AddTradeModal = ({ onClose, onSave, pairs, setups, sessions }) => {
               <label className="block text-sm text-text-secondary mb-2">Notes</label>
               <textarea
                 value={formData.notes}
-                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 className="w-full px-4 py-2.5 rounded-lg transition-all resize-none"
                 style={{
                   backgroundColor: '#1A1F2E',

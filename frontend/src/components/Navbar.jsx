@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 const Navbar = ({ status }) => {
-  const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
   const isRunning = Boolean(status?.running);
   const backendStatus = status?.backend || 'offline';
@@ -22,9 +21,8 @@ const Navbar = ({ status }) => {
         <div className="flex items-center gap-6">
           {/* System Status */}
           <div className="flex items-center gap-3 px-6 py-3 bg-bg-card rounded-lg border border-border-subtle min-w-[140px]">
-            <div className={`w-2 h-2 rounded-full ${
-              isBackendOnline ? 'bg-accent-primary animate-pulse-green' : 'bg-accent-danger'
-            }`}></div>
+            <div className={`w-2 h-2 rounded-full ${isBackendOnline ? 'bg-accent-primary animate-pulse-green' : 'bg-accent-danger'
+              }`}></div>
             <span className="text-small font-medium text-text-primary">
               {isBackendOnline ? 'Online' : 'Offline'}
             </span>
@@ -41,11 +39,10 @@ const Navbar = ({ status }) => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-smooth ${
-                  isActive 
-                    ? 'bg-accent-primary text-bg-main' 
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-smooth ${isActive
+                    ? 'bg-accent-primary text-bg-main'
                     : 'text-text-secondary hover:text-text-primary'
-                }`}
+                  }`}
               >
                 <span className="text-lg">{item.icon}</span>
                 <span className="text-tiny font-medium">{item.name}</span>
