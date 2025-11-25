@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
@@ -25,6 +25,53 @@ const Journal = () => {
   const PAIRS = ['GBPUSD', 'EURUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'XAUUSD', 'NZDUSD', 'USDCHF'];
   const SETUPS = ['Breakout', 'Pullback', 'Reversal', 'Trend Following', 'Range Trading', 'News Trading'];
   const SESSIONS = ['LONDON', 'NEW_YORK', 'ASIAN', 'OVERLAP'];
+
+  // Load journal entries from database
+  useEffect(() => {
+    loadJournalEntries();
+    loadStatistics();
+  }, []);
+
+  const loadJournalEntries = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/journal/entries');
+      const data = await response.json();
+      setRowData(data.entries || []);
+    } catch (error) {
+      console.error('Failed to load journal entries:', error);
+    }
+  };
+
+  const loadStatistics = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/journal/statistics');
+      const data = await response.json();
+      setStatistics(data);
+    } catch (error) {
+      console.error('Failed to load statistics:', error);
+    }
+  };
+
+  const handleDelete = useCallback(async (id) => {
+    if (!window.confirm('Are you sure you want to delete this trade?')) return;
+
+    try {
+      await fetch(`http://localhost:5000/api/journal/entries/${id}`, {
+        method: 'DELETE'
+      });
+      loadJournalEntries(); // Reload data
+      loadStatistics(); // Reload statistics
+    } catch (error) {
+      console.error('Failed to delete entry:', error);
+      alert('Failed to delete entry');
+    }
+  }, []);
+
+  const viewScreenshot = (base64) => {
+    // Open screenshot in new window
+    const win = window.open();
+    win.document.write(`<img src="${base64}" style="max-width:100%"/>`);
+  };
 
   // Column definitions with delete button
   const columnDefs = useMemo(() => ([
@@ -85,53 +132,6 @@ const Journal = () => {
     suppressHeaderMenuButton: true,
     flex: 0
   }), []);
-
-  // Load journal entries from database
-  useEffect(() => {
-    loadJournalEntries();
-    loadStatistics();
-  }, []);
-
-  const loadJournalEntries = async () => {
-    try {
-      const response = await fetch('http://localhost:5000/api/journal/entries');
-      const data = await response.json();
-      setRowData(data.entries || []);
-    } catch (error) {
-      console.error('Failed to load journal entries:', error);
-    }
-  };
-
-  const loadStatistics = async () => {
-    try {
-      const response = await fetch('http://localhost:5000/api/journal/statistics');
-      const data = await response.json();
-      setStatistics(data);
-    } catch (error) {
-      console.error('Failed to load statistics:', error);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this trade?')) return;
-
-    try {
-      await fetch(`http://localhost:5000/api/journal/entries/${id}`, {
-        method: 'DELETE'
-      });
-      loadJournalEntries(); // Reload data
-      loadStatistics(); // Reload statistics
-    } catch (error) {
-      console.error('Failed to delete entry:', error);
-      alert('Failed to delete entry');
-    }
-  };
-
-  const viewScreenshot = (base64) => {
-    // Open screenshot in new window
-    const win = window.open();
-    win.document.write(`<img src="${base64}" style="max-width:100%"/>`);
-  };
 
   const filteredRowData = useMemo(() => {
     return rowData.filter((r) => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 const Navbar = ({ status }) => {
@@ -40,8 +40,8 @@ const Navbar = ({ status }) => {
                 key={item.path}
                 to={item.path}
                 className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-smooth ${isActive
-                    ? 'bg-accent-primary text-bg-main'
-                    : 'text-text-secondary hover:text-text-primary'
+                  ? 'bg-accent-primary text-bg-main'
+                  : 'text-text-secondary hover:text-text-primary'
                   }`}
               >
                 <span className="text-lg">{item.icon}</span>
