@@ -126,3 +126,8 @@ start_system.py
 
 # Docker
 docker-compose.yml
+
+# Cache
+data_cache/
+__pycache__/
+.pytest_cache/
