@@ -1,0 +1,26 @@
+# Global ignores
+.git
+.gitignore
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+*.sqlite3
+*.db
+*.log
+.env
+
+# Node/Frontend
+node_modules
+frontend/node_modules
+frontend/build
+
+# Python virtual environments
+.venv
+venv
+ENV
+
+# OS/editor files
+.DS_Store
+.vscode
+.idea

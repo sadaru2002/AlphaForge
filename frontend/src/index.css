@@ -1,0 +1,235 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Import Inter font from Google Fonts */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+  
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #0A0E1A;
+    color: #FFFFFF;
+    overflow-x: hidden;
+  }
+
+  code {
+    font-family: 'JetBrains Mono', 'Fira Code', source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  }
+
+  /* Scrollbar Styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0A0E1A;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #7FFF00;
+  }
+}
+
+@layer components {
+  /* Base transition for all interactive elements */
+  .transition-smooth {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Card styles */
+  .card {
+    @apply bg-bg-card border border-border-subtle rounded-card shadow-card;
+  }
+
+  .card-hover {
+    @apply transition-smooth hover:shadow-card-hover hover:-translate-y-1;
+  }
+
+  /* Button styles */
+  .btn-primary {
+    @apply bg-accent-primary text-bg-main font-semibold px-8 py-3 rounded-button shadow-button;
+    @apply transition-smooth hover:brightness-110 hover:shadow-button-hover hover:-translate-y-0.5;
+    @apply active:translate-y-0 active:shadow-button;
+  }
+
+  .btn-secondary {
+    @apply bg-transparent border border-accent-primary text-accent-primary font-semibold px-8 py-3 rounded-button;
+    @apply transition-smooth hover:bg-accent-primary hover:bg-opacity-10;
+  }
+
+  .btn-danger {
+    @apply bg-accent-danger text-white font-semibold px-8 py-3 rounded-button shadow-button;
+    @apply transition-smooth hover:brightness-110 hover:-translate-y-0.5;
+  }
+
+  /* Input styles */
+  .input {
+    @apply bg-bg-card border border-border-subtle text-text-primary px-4 py-2 rounded-input;
+    @apply focus:outline-none focus:border-accent-primary focus:shadow-focus;
+    @apply placeholder:text-text-muted;
+  }
+
+  .input-field {
+    @apply bg-bg-elevated border border-border-elevated text-white px-4 py-2.5 rounded-input;
+    @apply focus:outline-none focus:border-accent-primary focus:bg-bg-hover focus:shadow-focus;
+    @apply placeholder:text-text-muted;
+    @apply transition-smooth;
+  }
+
+  .input-field:hover {
+    @apply border-accent-primary border-opacity-50;
+  }
+
+  select.input-field {
+    @apply cursor-pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%237FFF00' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+  }
+
+  select.input-field option {
+    @apply bg-bg-card text-white;
+  }
+
+  textarea.input-field {
+    @apply resize-none;
+  }
+
+  input[type="datetime-local"].input-field,
+  input[type="date"].input-field {
+    color-scheme: dark;
+  }
+
+  input[type="datetime-local"].input-field::-webkit-calendar-picker-indicator,
+  input[type="date"].input-field::-webkit-calendar-picker-indicator {
+    filter: invert(1) hue-rotate(90deg) brightness(1.2);
+    cursor: pointer;
+  }
+
+  /* Badge styles */
+  .badge {
+    @apply inline-flex items-center px-3 h-6 rounded-badge text-tiny font-semibold;
+  }
+
+  .badge-success {
+    @apply bg-accent-primary text-bg-main;
+  }
+
+  .badge-warning {
+    @apply bg-accent-warning text-bg-main;
+  }
+
+  .badge-danger {
+    @apply bg-accent-danger text-white;
+  }
+
+  .badge-info {
+    @apply bg-accent-info text-bg-main;
+  }
+
+  .badge-neutral {
+    @apply bg-border-elevated text-text-secondary;
+  }
+
+  /* Live indicator */
+  .live-indicator {
+    @apply flex items-center gap-2;
+  }
+
+  .live-dot {
+    @apply w-2 h-2 bg-accent-danger rounded-full animate-pulse-green;
+  }
+
+  /* Signal direction colors */
+  .signal-buy {
+    @apply text-accent-primary border-l-4 border-accent-primary;
+  }
+
+  .signal-sell {
+    @apply text-accent-danger border-l-4 border-accent-danger;
+  }
+
+  .signal-neutral {
+    @apply text-text-muted border-l-4 border-text-muted;
+  }
+}
+
+@layer utilities {
+  /* Text gradient effect */
+  .text-gradient-green {
+    background: linear-gradient(135deg, #7FFF00 0%, #00FF87 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Glassmorphism effect */
+  .glass {
+    background: rgba(26, 31, 46, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  /* Shimmer loading effect */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shimmer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(127, 255, 0, 0.1), transparent);
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+
+  /* Price change animations */
+  .price-up {
+    @apply text-accent-primary;
+    animation: price-flash-up 0.5s ease-out;
+  }
+
+  .price-down {
+    @apply text-accent-danger;
+    animation: price-flash-down 0.5s ease-out;
+  }
+
+  @keyframes price-flash-up {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; background-color: rgba(127, 255, 0, 0.1); }
+  }
+
+  @keyframes price-flash-down {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; background-color: rgba(255, 51, 102, 0.1); }
+  }
+
+  /* Focus visible for accessibility */
+  .focus-visible:focus-visible {
+    @apply outline-none ring-2 ring-accent-primary ring-offset-2 ring-offset-bg-main;
+  }
+}
+
