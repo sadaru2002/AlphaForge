@@ -117,8 +117,8 @@ graph TD
     ```
 
 4.  **Access the System**
-    *   **Backend API:** `http://localhost:5000`
-    *   **Health Check:** `http://localhost:5000/health`
+    *   **Backend API:** `http://localhost` (Port 80 via Nginx)
+    *   **Health Check:** `http://localhost/health`
 
 ---
 
