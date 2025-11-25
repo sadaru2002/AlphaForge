@@ -9,14 +9,15 @@ console.log('  - API Base URL:', API_BASE_URL);
 console.log('  - Current Origin:', window.location.origin);
 console.log('  - Protocol:', window.location.protocol);
 
-// Remove any trailing slashes or /api
-const cleanApiUrl = API_BASE_URL.replace(/\/api$/, '').replace(/\/$/, '');
+// Remove any trailing slashes or /api (but keep '/' for relative paths)
+const cleanApiUrl = API_BASE_URL === '/' ? '' : API_BASE_URL.replace(/\/api$/, '').replace(/\/$/, '');
 
 class ApiService {
   constructor() {
-    // Try multiple backend URLs for better reliability
-    this.baseURLs = [
-      cleanApiUrl,              // Primary backend (port 5000)
+    // For Vercel proxy, use empty string as base URL (relative paths)
+    // Otherwise try multiple backend URLs for better reliability
+    this.baseURLs = API_BASE_URL === '/' ? [''] : [
+      cleanApiUrl,              // Primary backend
       'http://127.0.0.1:5000',  // Alternative localhost
       'http://localhost:5000'    // Explicit localhost
     ];
@@ -73,11 +74,11 @@ class ApiService {
 
   transformPrices(backendPrices) {
     const transformed = {};
-    
+
     // OANDA to MT5 symbol mapping
     const symbolMapping = {
       'XAU_USD': 'XAUUSD',
-      'GBP_USD': 'GBPUSD', 
+      'GBP_USD': 'GBPUSD',
       'USD_JPY': 'USDJPY',
       'EUR_USD': 'EURUSD',
       'AUD_USD': 'AUDUSD',
@@ -89,15 +90,15 @@ class ApiService {
       'EUR_GBP': 'EURGBP',
       'AUD_JPY': 'AUDJPY'
     };
-    
+
     for (const [oandaSymbol, data] of Object.entries(backendPrices)) {
       // Convert OANDA symbol to MT5 format
       const mt5Symbol = symbolMapping[oandaSymbol] || oandaSymbol.replace('_', '');
-      
+
       // Calculate spread in pips
       const spread = data.ask - data.bid;
       const spreadPips = mt5Symbol === 'XAUUSD' ? spread * 10 : spread * 10000;
-      
+
       transformed[mt5Symbol] = {
         bid: data.bid,
         ask: data.ask,
@@ -119,13 +120,13 @@ class ApiService {
 
   async request(endpoint, options = {}) {
     let lastError = null;
-    
+
     // Try each backend URL
     for (let attempt = 0; attempt < this.maxRetries; attempt++) {
       try {
         const url = `${this.baseURL}${endpoint}`;
         console.log(`📡 API Request (attempt ${attempt + 1}): ${url}`);
-        
+
         const response = await fetch(url, {
           headers: {
             'Content-Type': 'application/json',
@@ -140,7 +141,7 @@ class ApiService {
         });
 
         console.log(`✅ Response Status: ${response.status}`);
-        
+
         if (!response.ok) {
           const errorText = await response.text();
           console.error(`❌ API Error ${response.status}: ${errorText}`);
@@ -149,17 +150,17 @@ class ApiService {
 
         const data = await response.json();
         console.log(`📦 API Response Data:`, data);
-        
+
         // Reset to primary URL on success
         if (this.currentURLIndex !== 0) {
           this.resetToPrimaryURL();
         }
-        
+
         return data;
       } catch (error) {
         console.error(`❌ API Request Failed (attempt ${attempt + 1}): ${endpoint}`, error);
         lastError = error;
-        
+
         // Switch to next URL if this attempt failed
         if (attempt < this.maxRetries - 1) {
           this.switchToNextURL();
@@ -168,10 +169,10 @@ class ApiService {
         }
       }
     }
-    
+
     // All attempts failed, throw the last error with enhanced messaging
     console.error(`❌ All API attempts failed for: ${endpoint}`);
-    
+
     if (lastError.message.includes('Failed to fetch')) {
       throw new Error(`Cannot connect to any backend server. Tried: ${this.baseURLs.join(', ')}`);
     } else if (lastError.message.includes('NetworkError') || lastError.message.includes('CORS')) {
@@ -181,7 +182,7 @@ class ApiService {
     } else if (lastError.name === 'TimeoutError') {
       throw new Error(`Request timeout: All backend servers are not responding within 5 seconds.`);
     }
-    
+
     throw lastError;
   }
 
@@ -214,7 +215,7 @@ class ApiService {
         console.log('✅ Using REAL OANDA data');
         return realData;
       }
-      
+
       // Fallback to backend
       const response = await this.request('/api/prices/live');
       if (response.prices) {
@@ -403,11 +404,11 @@ class ApiService {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         const prices = {};
-        
+
         if (data.prices) {
           data.prices.forEach(price => {
             const symbol = price.instrument.replace('_', '');
@@ -415,18 +416,18 @@ class ApiService {
               bid: parseFloat(price.bids[0].price),
               ask: parseFloat(price.asks[0].price),
               spread: parseFloat(price.asks[0].price) - parseFloat(price.bids[0].price),
-              spreadPips: symbol === 'XAUUSD' ? 
+              spreadPips: symbol === 'XAUUSD' ?
                 ((parseFloat(price.asks[0].price) - parseFloat(price.bids[0].price)) * 10) :
                 ((parseFloat(price.asks[0].price) - parseFloat(price.bids[0].price)) * 10000),
               time: price.time,
-              volume: { 
-                bid: parseFloat(price.bids[0].liquidity), 
-                ask: parseFloat(price.asks[0].liquidity) 
+              volume: {
+                bid: parseFloat(price.bids[0].liquidity),
+                ask: parseFloat(price.asks[0].liquidity)
               }
             };
           });
         }
-        
+
         return {
           prices: prices,
           timestamp: new Date().toISOString(),
@@ -436,7 +437,7 @@ class ApiService {
     } catch (error) {
       console.warn('Real OANDA fetch failed:', error);
     }
-    
+
     // Fallback to realistic mock data
     return this.getMockPrices();
   }
