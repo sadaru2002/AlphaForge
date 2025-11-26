@@ -39,6 +39,7 @@ from database.signal_crud import SignalCRUD, AnalyticsCRUD
 from database.trade_calculator import TradeCalculator
 from database.journal_models import JournalEntry
 from database.journal_crud import JournalCRUD
+from enhanced_signal_generator import EnhancedSignalGenerator
 # import strategy_variables as config  # Not needed - all config from .env
 
 # Database setup - Read from environment
@@ -1325,6 +1326,82 @@ async def create_journal_entry(entry_data: dict, db: Session = Depends(get_db)):
         # For now, just a placeholder to prevent 404s
         return {"status": "success", "message": "Entry created", "id": 1}
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ===== SIGNAL GENERATION ENDPOINT =====
+
+# Initialize generator
+signal_generator = None
+
+@app.on_event("startup")
+async def startup_event():
+    global signal_generator
+    try:
+        signal_generator = EnhancedSignalGenerator()
+        logger.info("✅ Enhanced Signal Generator initialized")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize Signal Generator: {e}")
+
+@app.post("/api/signals/enhanced/generate")
+async def generate_enhanced_signals(db: Session = Depends(get_db)):
+    """Generate signals using Enhanced Strategy (called by scheduler)"""
+    global signal_generator
+    if not signal_generator:
+        raise HTTPException(status_code=503, detail="Signal Generator not initialized")
+    
+    results = []
+    signals_generated = 0
+    
+    try:
+        # Generate for all supported instruments
+        for instrument in signal_generator.instruments:
+            logger.info(f"Generating signal for {instrument}...")
+            signal = await signal_generator.generate_signal(instrument)
+            
+            if signal and signal.get('signal') in ['BUY', 'SELL'] and signal.get('tradeable', False):
+                # Create signal in database
+                new_signal_data = {
+                    "timestamp": datetime.utcnow(),
+                    "symbol": signal['instrument'],
+                    "direction": signal['signal'],
+                    "entry": signal['entry_price'],
+                    "stop_loss": signal['stop_loss'],
+                    "tp1": signal['take_profit'],
+                    "tp2": None, # Could calculate extended targets
+                    "tp3": None,
+                    "rr_ratio": f"1:{signal['risk_reward_ratio']:.2f}",
+                    "confidence_score": signal['confidence'] * 100,
+                    "reasoning": f"Regime: {signal['regime']} | Strength: {signal['strength']:.1f}% | Votes: {signal['buy_votes']}/{signal['sell_votes']}",
+                    "status": SignalStatus.PENDING,
+                    "strategy_used": "AlphaForge Enhanced"
+                }
+                
+                saved_signal = SignalCRUD.create_signal(db, new_signal_data)
+                
+                results.append({
+                    "pair": instrument,
+                    "generated": True,
+                    "signal_id": saved_signal.id,
+                    "direction": signal['signal']
+                })
+                signals_generated += 1
+            else:
+                reason = signal.get('reason', 'No signal') if signal else 'Error generating'
+                results.append({
+                    "pair": instrument,
+                    "generated": False,
+                    "reason": reason
+                })
+        
+        return {
+            "signals_generated": signals_generated,
+            "results": results,
+            "statistics": signal_generator.get_statistics()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in signal generation endpoint: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
