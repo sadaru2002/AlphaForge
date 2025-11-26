@@ -20,19 +20,17 @@ class MultiTimeframeEngine:
     Uses weighted multi-timeframe confluence for better win rates.
     """
 
-    def __init__(self, api_key=None, environment="practice", min_votes_required=2.5, min_strength=35.0):
+    def __init__(self, api_key=None, environment="practice", min_votes_required=2.0, min_strength=25.0):
         """
         Initialize Multi-Timeframe Engine.
         
         Args:
             api_key: OANDA API key
             environment: "practice" or "live"
-            min_votes_required: Minimum indicator votes needed for signal (default: 2.5)
-                                Higher = fewer but higher quality signals
-                                UPGRADED: 2.0 → 2.5 for 50%+ win rate
-            min_strength: Minimum signal strength percentage (default: 35.0)
-                         Higher = stricter quality filter
-                         UPGRADED: 30.0 → 35.0 for 50%+ win rate
+            min_votes_required: Minimum indicator votes needed for signal (default: 2.0)
+                                RELAXED: 2.5 → 2.0 for more signals
+            min_strength: Minimum signal strength percentage (default: 25.0)
+                         RELAXED: 35.0 → 25.0 for more signals
         """
         self.api_key = api_key or os.getenv("OANDA_API_KEY")
         self.api = API(access_token=self.api_key, environment=environment)
@@ -682,15 +680,15 @@ class MultiTimeframeEngine:
         
         m5_analysis = tf_signals.get('M5', {}).get('latest_data', {})
         
-        # ===== FILTER 1: Volatility Range (UPGRADED for Quality) =====
+        # ===== FILTER 1: Volatility Range (RELAXED) =====
         atr_pct = m5_analysis.get('atr_pct', 0)
         
-        # UPGRADED: 0.02% → 0.05% minimum for higher quality trades
-        if 0.05 <= atr_pct <= 1.0:
+        # RELAXED: 0.05% → 0.02% minimum to catch smaller moves
+        if 0.02 <= atr_pct <= 1.0:
             volatility_ok = True
         else:
-            if atr_pct < 0.05:
-                reasons.append(f"Volatility too low: {atr_pct:.2f}% (need 0.05%+)")
+            if atr_pct < 0.02:
+                reasons.append(f"Volatility too low: {atr_pct:.2f}% (need 0.02%+)")
             else:
                 reasons.append(f"Volatility too high: {atr_pct:.2f}% (max 1.0%)")
         
@@ -700,16 +698,15 @@ class MultiTimeframeEngine:
         else:
             reasons.append(f"Signal strength too weak: {strength:.1f}% (need {self.min_strength}%+)")
         
-        # ===== FILTER 3: ADX Trend Strength (UPGRADED) =====
+        # ===== FILTER 3: ADX Trend Strength (RELAXED) =====
         adx = m5_analysis.get('adx', 0)
         
-        # UPGRADED: 15 → 22 for stronger trend requirement
-        # For trending signals, need ADX > 22 (Strong trends only)
+        # RELAXED: 22 → 15 to catch weaker trends
         if signal_type in ['BUY', 'SELL']:
-            if adx >= 22:
+            if adx >= 15:
                 adx_ok = True
             else:
-                reasons.append(f"Weak trend (ADX={adx:.1f}, need 22+)")
+                reasons.append(f"Weak trend (ADX={adx:.1f}, need 15+)")
         
         # ===== FILTER 4: Spread Check (Simulated) =====
         # In production, you'd check actual spread from broker
