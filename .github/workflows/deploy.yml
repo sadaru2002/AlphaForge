@@ -13,6 +13,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Deploy to VM
+      env:
+        SSH_KEY: ${{ secrets.VM_SSH_KEY }}
+      run: |
+        if [ -z "$SSH_KEY" ]; then
+          echo "Error: VM_SSH_KEY is empty!"
+          exit 1
+        else
+          echo "VM_SSH_KEY is set. Length: ${#SSH_KEY}"
+        fi
+
+    - name: Deploy to VM (Actual)
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.VM_HOST }}
