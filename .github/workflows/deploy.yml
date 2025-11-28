@@ -3,6 +3,10 @@ name: Deploy to Oracle VM
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/deploy.yml'
 
 jobs:
   deploy:
