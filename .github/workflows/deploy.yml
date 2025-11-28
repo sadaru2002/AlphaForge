@@ -1,0 +1,26 @@
+name: Deploy to Oracle VM
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Deploy to VM
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VM_HOST }}
+        username: ${{ secrets.VM_USERNAME }}
+        key: ${{ secrets.VM_SSH_KEY }}
+        script: |
+          cd ~/alphaforge
+          git pull origin main
+          
+          # Rebuild and restart containers
+          # Using --build to ensure any dependency changes are picked up
+          sudo docker compose up -d --build
+          
+          # Prune unused images to save space
+          sudo docker image prune -f
