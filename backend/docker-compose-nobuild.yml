@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  alphaforge-backend:
+    image: alphaforge-backend
+    container_name: alphaforge-backend
+    restart: always
+    network_mode: "host"
+    volumes:
+      - ./trading_signals.db:/app/backend/trading_signals.db
+      - ./.env:/app/backend/.env
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=sqlite:///./trading_signals.db
+
+  alphaforge-scheduler:
+    image: alphaforge-scheduler
+    container_name: alphaforge-scheduler
+    restart: always
+    network_mode: "host"
+    volumes:
+      - ./trading_signals.db:/app/backend/trading_signals.db
+      - ./.env:/app/backend/.env
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=sqlite:///./trading_signals.db
+      - API_BASE_URL=http://localhost:5000
+
+  alphaforge-telegram-bot:
+    image: alphaforge-telegram-bot
+    container_name: alphaforge-telegram-bot
+    restart: always
+    network_mode: "host"
+    volumes:
+      - ./trading_signals.db:/app/backend/trading_signals.db
+      - ./.env:/app/backend/.env
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=sqlite:///./trading_signals.db
