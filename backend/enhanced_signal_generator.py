@@ -78,6 +78,22 @@ class EnhancedSignalGenerator:
             return None
         
         try:
+            # Check if it's weekend (Forex markets are closed)
+            current_time = timestamp or datetime.now()
+            weekday = current_time.weekday()  # 0=Monday, 6=Sunday
+            
+            if weekday >= 5:  # Saturday (5) or Sunday (6)
+                logger.info(f"Weekend detected ({current_time.strftime('%A')}). Forex markets are closed - skipping signal generation.")
+                return {
+                    'instrument': instrument,
+                    'signal': 'SKIP',
+                    'regime': 'MARKET_CLOSED',
+                    'reason': f'Weekend - Forex markets closed ({current_time.strftime("%A, %Y-%m-%d")})',
+                    'tradeable': False,
+                    'timestamp': current_time.isoformat(),
+                    'weekend': True
+                }
+            
             # Step 1: Fetch multi-timeframe data
             if provided_data:
                 # Use injected data for backtesting
@@ -223,6 +239,17 @@ class EnhancedSignalGenerator:
             final_strength = mtf_signal['strength']
             
             # Step 10: Determine entry/exit levels (INSTRUMENT-SPECIFIC)
+            # FIX: Check for valid direction before calculating SL/TP
+            if mtf_signal['signal'] not in ['BUY', 'SELL']:
+                logger.info(f"Skipping SL/TP calculation for {instrument} due to signal: {mtf_signal['signal']}")
+                return {
+                    'instrument': instrument,
+                    'signal': 'SKIP',
+                    'reason': f"Signal direction is {mtf_signal['signal']}",
+                    'tradeable': False,
+                    'timestamp': (timestamp or datetime.now()).isoformat()
+                }
+
             # NEW: Using backtest-optimized distances for each instrument
             # XAU/USD: $4.50 SL / $10.50 TP (45/105 pips)
             # GBP/USD: 12 pips SL / 25 pips TP
