@@ -1,0 +1,102 @@
+# AlphaForge Backend Requirements (Optimized)
+# Performance-enhanced dependencies for production deployment
+
+# Core Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.4.0
+
+# Database (Async Support)
+sqlalchemy>=2.0.0
+alembic>=1.12.0
+psycopg2-binary>=2.9.9  # PostgreSQL driver
+asyncpg>=0.29.0  # Async PostgreSQL driver
+aiosqlite>=0.19.0  # Async SQLite driver
+
+# Caching
+redis>=5.0.0
+aioredis>=2.0.1
+hiredis>=2.2.3  # C-based Redis parser (faster)
+
+# HTTP Client (Async)
+httpx>=0.25.0
+aiohttp>=3.9.0
+
+# Trading APIs
+oandapyV20>=0.7.2
+
+# Data Processing
+pandas>=2.1.0
+numpy>=1.24.0
+scipy>=1.11.0
+scikit-learn>=1.3.0
+
+# Technical Indicators
+ta-lib>=0.4.28  # Install binary: https://github.com/TA-Lib/ta-lib-python
+# pandas-ta>=0.3.14  # Not on PyPI - install manually if needed
+
+# AI/ML
+google-generativeai>=0.3.0
+
+# Utilities
+python-dotenv>=1.0.0
+python-multipart>=0.0.6
+pytz>=2023.3
+
+# Compression
+brotli>=1.1.0  # Better compression than gzip
+
+# Monitoring
+prometheus-client>=0.18.0
+psutil>=5.9.6
+
+# Logging
+structlog>=23.2.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+httpx>=0.25.0  # For testing async endpoints
+
+# Development
+black>=23.10.0
+isort>=5.12.0
+flake8>=6.1.0
+mypy>=1.6.0
+
+# Security
+cryptography>=41.0.5
+python-jose[cryptography]>=3.3.0
+
+# Rate Limiting
+slowapi>=0.1.9
+
+# Job Scheduling (for background tasks)
+apscheduler>=3.10.4
+schedule>=1.2.0
+
+# Optional: Message Queue for distributed systems
+# celery>=5.3.4
+# redis>=5.0.0  # Already included above
+
+# CORS
+python-multipart>=0.0.6
+
+# Environment Management
+python-dotenv>=1.0.0
+
+# Data Validation
+email-validator>=2.1.0
+
+# JSON Optimization
+orjson>=3.9.10  # Faster JSON serialization (C-based)
+
+# WebSockets (for real-time updates)
+websockets>=12.0
+
+# Process Management
+gunicorn>=21.2.0  # Production WSGI server
+
+# Health Checks
+healthcheck>=1.3.3

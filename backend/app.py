@@ -697,96 +697,6 @@ async def get_analysis_history():
 
 # ==================== ENHANCED SIGNAL GENERATION (AlphaForge Integration) ====================
 
-@app.post("/api/signals/enhanced/generate")
-async def generate_enhanced_signals(db: Session = Depends(get_db)):
-    """
-    Generate enhanced signals for all 3 focus pairs.
-    """
-    try:
-        from enhanced_strategy_integration import get_enhanced_strategy
-        
-        strategy = get_enhanced_strategy()
-        logger.info("🚀 Generating enhanced signals for GBP/USD, XAU/USD, USD/JPY...")
-        
-        # Generate signals for all 3 pairs
-        pairs = ['GBP_USD', 'XAU_USD', 'USD_JPY']
-        results = []
-        success_count = 0
-        
-        for pair in pairs:
-            try:
-                signal = await strategy.generate_signal_for_pair(pair)
-                
-                if signal:
-                    # Save to database
-                    db_signal = TradingSignal(
-                        pair=signal['pair'],
-                        symbol=signal['symbol'],
-                        direction=signal['direction'],
-                        entry_price=signal['entry'],
-                        stop_loss=signal['stop_loss'],
-                        take_profit=signal['take_profit'],
-                        confidence_score=signal['confidence_score'],
-                        status=SignalStatus.PENDING,
-                        metadata={
-                            'regime': signal['market_regime'],
-                            'regime_tradeable': signal['regime_tradeable'],
-                            'position_multiplier': signal['position_multiplier'],
-                            'kelly_fraction': signal['kelly_fraction'],
-                            'recommended_risk': signal['recommended_risk'],
-                            'mtf_m5': signal['mtf_m5'],
-                            'mtf_m15': signal['mtf_m15'],
-                            'mtf_h1': signal['mtf_h1'],
-                            'agreement': signal['agreement'],
-                            'session_weight': signal['session_weight'],
-                            'atr': signal['atr'],
-                            'reasoning': signal['reasoning']
-                        }
-                    )
-                    db.add(db_signal)
-                    db.commit()
-                    db.refresh(db_signal)
-                    
-                    success_count += 1
-                    results.append({
-                        "pair": pair,
-                        "signal_id": db_signal.id,
-                        "direction": signal['direction'],
-                        "confidence": signal['confidence_score'],
-                        "regime": signal['market_regime'],
-                        "generated": True
-                    })
-                    logger.info(f"✅ {pair}: {signal['direction']} signal saved (ID: {db_signal.id})")
-                else:
-                    results.append({
-                        "pair": pair,
-                        "generated": False,
-                        "reason": "Filtered by regime/confidence/agreement"
-                    })
-                    logger.info(f"⏭️  {pair}: No tradeable signal")
-                    
-            except Exception as e:
-                logger.error(f"Error generating signal for {pair}: {e}")
-                results.append({
-                    "pair": pair,
-                    "generated": False,
-                    "error": str(e)
-                })
-        
-        # Get strategy statistics
-        stats = strategy.get_statistics()
-        
-        return {
-            "status": "success" if success_count > 0 else "no_signals",
-            "signals_generated": success_count,
-            "results": results,
-            "statistics": stats,
-            "message": f"Enhanced strategy generated {success_count}/3 signals"
-        }
-        
-    except Exception as e:
-        logger.error(f"Error in enhanced signal generation: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/signals/enhanced/generate/{pair}")
@@ -1360,7 +1270,6 @@ async def generate_enhanced_signals(db: Session = Depends(get_db)):
             signal = await signal_generator.generate_signal(instrument)
             
             if signal and signal.get('signal') in ['BUY', 'SELL'] and signal.get('tradeable', False):
-                # Create signal in database
                 new_signal_data = {
                     "timestamp": datetime.utcnow(),
                     "symbol": signal['instrument'],
@@ -1373,8 +1282,7 @@ async def generate_enhanced_signals(db: Session = Depends(get_db)):
                     "rr_ratio": f"1:{signal['risk_reward_ratio']:.2f}",
                     "confidence_score": signal['confidence'] * 100,
                     "reasoning": f"Regime: {signal['regime']} | Strength: {signal['strength']:.1f}% | Votes: {signal['buy_votes']}/{signal['sell_votes']}",
-                    "status": SignalStatus.PENDING,
-                    "strategy_used": "AlphaForge Enhanced"
+                    "status": SignalStatus.PENDING
                 }
                 
                 saved_signal = SignalCRUD.create_signal(db, new_signal_data)

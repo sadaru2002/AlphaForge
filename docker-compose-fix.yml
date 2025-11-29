@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  alphaforge-backend:
+    build: .
+    container_name: alphaforge-backend
+    network_mode: host
+    volumes:
+      - ./trading_signals.db:/app/backend/trading_signals.db
+    env_file:
+      - .env
+    restart: always
+    command: python app.py
+
+  alphaforge-scheduler:
+    build: .
+    container_name: alphaforge-scheduler
+    network_mode: host
+    volumes:
+      - ./trading_signals.db:/app/backend/trading_signals.db
+    env_file:
+      - .env
+    depends_on:
+      - alphaforge-backend
+    restart: always
+    command: python signal_scheduler.py
+
+  alphaforge-telegram-bot:
+    build: .
+    container_name: alphaforge-telegram-bot
+    network_mode: host
+    volumes:
+      - ./trading_signals.db:/app/backend/trading_signals.db
+    env_file:
+      - .env
+    depends_on:
+      - alphaforge-backend
+    restart: always
+    command: python telegram_bot.py

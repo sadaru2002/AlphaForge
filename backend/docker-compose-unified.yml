@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  alphaforge-backend:
+    build: .
+    container_name: alphaforge-backend
+    restart: always
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./trading_signals.db:/app/backend/trading_signals.db
+      - ./.env:/app/backend/.env
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=sqlite:///./trading_signals.db
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:5000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  alphaforge-scheduler:
+    build: .
+    container_name: alphaforge-scheduler
+    restart: always
+    network_mode: "host"
+    command: python signal_scheduler.py
+    volumes:
+      - ./trading_signals.db:/app/backend/trading_signals.db
+      - ./.env:/app/backend/.env
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=sqlite:///./trading_signals.db
+      - API_BASE_URL=http://localhost:5000
+    depends_on:
+      - alphaforge-backend
+
+  alphaforge-telegram-bot:
+    build: .
+    container_name: alphaforge-telegram-bot
+    restart: always
+    network_mode: "host"
+    command: python telegram_bot.py
+    volumes:
+      - ./trading_signals.db:/app/backend/trading_signals.db
+      - ./.env:/app/backend/.env
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=sqlite:///./trading_signals.db
+    depends_on:
+      - alphaforge-backend

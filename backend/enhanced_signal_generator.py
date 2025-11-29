@@ -38,8 +38,8 @@ class EnhancedSignalGenerator:
         # UPGRADED: Stricter parameters for 50%+ win rate
         self.mtf_engine = MultiTimeframeEngine(
             api_key=oanda_api_key, 
-            min_votes_required=2.5,  # UPGRADED: 1.5 → 2.5
-            min_strength=35.0        # UPGRADED: 25.0 → 35.0
+            min_votes_required=0.0,  # RELAXED for debugging
+            min_strength=0.0         # RELAXED for debugging
         )
         
         # NEW: Advanced regime classifier for STRONG_TREND filtering
@@ -60,8 +60,8 @@ class EnhancedSignalGenerator:
         }
         
         # Minimum signal thresholds (Kept at relaxed levels)
-        self.min_confidence = 0.4
-        self.min_agreement = 0.5
+        self.min_confidence = 0.0
+        self.min_agreement = 0.0
         
     async def generate_signal(self, instrument='GBP_USD', timestamp=None, provided_data=None):
         """
@@ -78,6 +78,22 @@ class EnhancedSignalGenerator:
             return None
         
         try:
+            # Check if it's weekend (Forex markets are closed)
+            current_time = timestamp or datetime.now()
+            weekday = current_time.weekday()  # 0=Monday, 6=Sunday
+            
+            if weekday >= 5:  # Saturday (5) or Sunday (6)
+                logger.info(f"Weekend detected ({current_time.strftime('%A')}). Forex markets are closed - skipping signal generation.")
+                return {
+                    'instrument': instrument,
+                    'signal': 'SKIP',
+                    'regime': 'MARKET_CLOSED',
+                    'reason': f'Weekend - Forex markets closed ({current_time.strftime("%A, %Y-%m-%d")})',
+                    'tradeable': False,
+                    'timestamp': current_time.isoformat(),
+                    'weekend': True
+                }
+            
             # Step 1: Fetch multi-timeframe data
             if provided_data:
                 # Use injected data for backtesting
@@ -178,7 +194,7 @@ class EnhancedSignalGenerator:
                 filter_reasons = mtf_signal['filter_results'].get('reasons', [])
                 logger.warning(f"Signal rejected by quality filters: {filter_reasons}")
             # Step 6: Check signal strength (align with engine's threshold)
-            if mtf_signal['strength'] < 25:  # Lowered to 25%
+            if mtf_signal['strength'] < 0:  # RELAXED
                 logger.warning(f"Low strength: {mtf_signal['strength']:.1f}%")
                 return {
                     'instrument': instrument,
@@ -223,6 +239,17 @@ class EnhancedSignalGenerator:
             final_strength = mtf_signal['strength']
             
             # Step 10: Determine entry/exit levels (INSTRUMENT-SPECIFIC)
+            # FIX: Check for valid direction before calculating SL/TP
+            if mtf_signal['signal'] not in ['BUY', 'SELL']:
+                logger.info(f"Skipping SL/TP calculation for {instrument} due to signal: {mtf_signal['signal']}")
+                return {
+                    'instrument': instrument,
+                    'signal': 'SKIP',
+                    'reason': f"Signal direction is {mtf_signal['signal']}",
+                    'tradeable': False,
+                    'timestamp': (timestamp or datetime.now()).isoformat()
+                }
+
             # NEW: Using backtest-optimized distances for each instrument
             # XAU/USD: $4.50 SL / $10.50 TP (45/105 pips)
             # GBP/USD: 12 pips SL / 25 pips TP
