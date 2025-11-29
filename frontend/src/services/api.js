@@ -1,6 +1,6 @@
 // API service for backend communication
 // Use environment variable or fallback to localhost:5000 (AlphaForge backend port)
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://161.118.218.33';
 
 // Debug logging
 console.log('🔧 API Configuration:');
@@ -18,6 +18,7 @@ class ApiService {
     // Otherwise try multiple backend URLs for better reliability
     this.baseURLs = API_BASE_URL === '/' ? [''] : [
       cleanApiUrl,              // Primary backend
+      'http://161.118.218.33',  // Production VM
       'http://127.0.0.1:5000',  // Alternative localhost
       'http://localhost:5000'    // Explicit localhost
     ];
