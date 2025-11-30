@@ -129,7 +129,7 @@ temp_test_output.txt
 start_system.py
 
 # Docker
-docker-compose.yml
+# docker-compose.yml
 
 # Cache
 data_cache/

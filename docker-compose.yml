@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  backend:
+    image: alphaforge-backend:latest
+    container_name: alphaforge-backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    network_mode: host
+    volumes:
+      - ~/alphaforge/data:/app/backend/data
+    env_file:
+      - .env
+    restart: always
+    command: python app.py
+
+  scheduler:
+    image: alphaforge-backend:latest
+    container_name: alphaforge-scheduler
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    network_mode: host
+    volumes:
+      - ~/alphaforge/data:/app/backend/data
+    env_file:
+      - .env
+    depends_on:
+      - backend
+    restart: always
+    command: python signal_scheduler.py
+
+  telegram_bot:
+    image: alphaforge-backend:latest
+    container_name: alphaforge-telegram-bot
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    network_mode: host
+    volumes:
+      - ~/alphaforge/data:/app/backend/data
+    env_file:
+      - .env
+    depends_on:
+      - backend
+    restart: always
+    command: python telegram_bot.py

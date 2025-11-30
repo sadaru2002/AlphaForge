@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'backend/**'
-      - 'docker-compose-fix.yml'
+      - 'docker-compose.yml'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -21,37 +21,27 @@ jobs:
           username: ${{ secrets.VM_USERNAME }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            cd ~/alphaforge || mkdir -p ~/alphaforge && cd ~/alphaforge
+            # Create project directory
+            mkdir -p ~/alphaforge && cd ~/alphaforge
             
-            # Pull latest code from GitHub
+            # Pull latest code
             if [ -d ".git" ]; then
               git pull origin main
             else
               git clone https://github.com/sadaru2002/AlphaForge.git .
             fi
             
-            # Stop and remove old containers
-            sudo docker stop alphaforge-backend alphaforge-scheduler alphaforge-telegram-bot 2>/dev/null || true
-            sudo docker rm alphaforge-backend alphaforge-scheduler alphaforge-telegram-bot 2>/dev/null || true
+            # Create .env file from GitHub Secrets
+            echo "${{ secrets.ENV_FILE }}" > .env
             
-            # Rebuild and start containers with environment variables
-            sudo docker run -d --name alphaforge-backend --network host --restart always \
-              -e "OANDA_API_KEY=11bacc1becaf8df27bfd105a828ba70b-c9f535661ccd35bbd1310bffe8b79595" \
-              -e "OANDA_ACCOUNT_ID=101-001-37260967-001" \
-              -e "OANDA_BASE_URL=https://api-fxpractice.oanda.com/v3" \
-             -e "TELEGRAM_BOT_TOKEN=8333329847:AAG4sk5BMZWs-h07cRx0Y69qiK-I9NrJcrs" \
-              -e "TELEGRAM_CHAT_ID=1318456723" \
-              -e "DATABASE_URL=sqlite:///./trading_signals.db" \
-              $(sudo docker build -q .)  python app.py
+            # Ensure data directory exists
+            mkdir -p ~/alphaforge/data
             
-            sudo docker run -d --name alphaforge-scheduler --network host --restart always \
-              -e "OANDA_API_KEY=11bacc1becaf8df27bfd105a828ba70b-c9f535661ccd35bbd1310bffe8b79595" \
-              -e "DATABASE_URL=sqlite:///./trading_signals.db" \
-              $(sudo docker build -q .) python signal_scheduler.py
+            # Deploy with Docker Compose
+            # This handles stopping old containers, rebuilding, and starting new ones
+            sudo docker compose up -d --build --remove-orphans
             
-            sudo docker run -d --name alphaforge-telegram-bot --network host --restart always \
-              -e "TELEGRAM_BOT_TOKEN=8333329847:AAG4sk5BMZWs-h07cRx0Y69qiK-I9NrJcrs" \
-              -e "TELEGRAM_CHAT_ID=1318456723" \
-              $(sudo docker build -q .) python telegram_bot.py
+            # Clean up unused images
+            sudo docker image prune -f
             
             echo "Deployment complete!"
