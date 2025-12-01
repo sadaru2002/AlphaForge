@@ -10,6 +10,7 @@ services:
     network_mode: host
     volumes:
       - ~/alphaforge/data:/app/backend/data
+      - ./trading_signals.db:/app/backend/trading_signals.db
     env_file:
       - .env
     restart: always
@@ -24,6 +25,7 @@ services:
     network_mode: host
     volumes:
       - ~/alphaforge/data:/app/backend/data
+      - ./trading_signals.db:/app/backend/trading_signals.db
     env_file:
       - .env
     depends_on:
@@ -40,6 +42,7 @@ services:
     network_mode: host
     volumes:
       - ~/alphaforge/data:/app/backend/data
+      - ./trading_signals.db:/app/backend/trading_signals.db
     env_file:
       - .env
     depends_on:
