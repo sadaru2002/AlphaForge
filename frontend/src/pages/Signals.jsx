@@ -76,6 +76,68 @@ const Signals = () => {
     return ['all', ...new Set(signals.map(s => s.symbol))];
   };
 
+  const handleExportCSV = () => {
+    // Define CSV headers
+    const headers = [
+      'Timestamp',
+      'Symbol',
+      'Direction',
+      'Entry',
+      'Stop Loss',
+      'Take Profit',
+      'Risk/Reward',
+      'Confidence',
+      'Status',
+      'Outcome',
+      'P&L',
+      'Duration (hours)',
+      'Reasoning'
+    ];
+
+    // Convert signals to CSV rows
+    const rows = sortedSignals.map(signal => [
+      new Date(signal.timestamp).toLocaleString(),
+      signal.symbol || '',
+      signal.direction || '',
+      signal.entry || signal.entry_price || '',
+      signal.stop_loss || '',
+      signal.take_profit || signal.tp1 || '',
+      signal.rr_ratio || '',
+      signal.confidence_score ? `${signal.confidence_score}%` : '',
+      signal.status || '',
+      signal.outcome || 'PENDING',
+      signal.actual_pnl || '',
+      signal.duration_hours || '',
+      signal.reasoning || ''
+    ]);
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row =>
+        row.map(cell =>
+          // Escape commas and quotes in cell content
+          typeof cell === 'string' && (cell.includes(',') || cell.includes('"'))
+            ? `"${cell.replace(/"/g, '""')}"`
+            : cell
+        ).join(',')
+      )
+    ].join('\n');
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `trading_signals_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="min-h-screen bg-bg-main p-6">
       {/* Header */}
@@ -96,7 +158,11 @@ const Signals = () => {
               <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
               Refresh
             </button>
-            <button className="btn-primary flex items-center gap-2">
+            <button
+              onClick={handleExportCSV}
+              disabled={sortedSignals.length === 0}
+              className="btn-primary flex items-center gap-2"
+            >
               <Download size={18} />
               Export CSV
             </button>
@@ -164,8 +230,8 @@ const Signals = () => {
                 key={f}
                 onClick={() => setFilter(f)}
                 className={`px-4 py-2 rounded-lg capitalize transition-smooth ${filter === f
-                    ? 'bg-accent-primary text-bg-main'
-                    : 'bg-bg-elevated text-text-secondary hover:bg-bg-hover'
+                  ? 'bg-accent-primary text-bg-main'
+                  : 'bg-bg-elevated text-text-secondary hover:bg-bg-hover'
                   }`}
               >
                 {f}
