@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'backend/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 jobs:
@@ -14,13 +18,33 @@ jobs:
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USERNAME }}
+          username: ubuntu
           key: ${{ secrets.VM_SSH_KEY }}
+          port: 22
+          timeout: 60s
+          debug: true
           script: |
+            # Create project directory
             mkdir -p ~/alphaforge && cd ~/alphaforge
-            git pull origin main || git clone https://github.com/sadaru2002/AlphaForge.git .
+            
+            # Pull latest code
+            if [ -d ".git" ]; then
+              git pull origin main
+            else
+              git clone https://github.com/sadaru2002/AlphaForge.git .
+            fi
+            
+            # Create .env file from GitHub Secrets
             echo "${{ secrets.ENV_FILE }}" > .env
+            
+            # Ensure data directory exists
             mkdir -p ~/alphaforge/data
+            
+            # Deploy with Docker Compose
+            # This handles stopping old containers, rebuilding, and starting new ones
             sudo docker compose up -d --build --remove-orphans
+            
+            # Clean up unused images
             sudo docker image prune -f
+            
             echo "Deployment complete!"
