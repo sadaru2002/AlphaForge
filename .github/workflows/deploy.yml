@@ -4,10 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'backend/**'
-      - 'docker-compose.yml'
-      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 jobs:
@@ -21,27 +17,10 @@ jobs:
           username: ${{ secrets.VM_USERNAME }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            # Create project directory
             mkdir -p ~/alphaforge && cd ~/alphaforge
-            
-            # Pull latest code
-            if [ -d ".git" ]; then
-              git pull origin main
-            else
-              git clone https://github.com/sadaru2002/AlphaForge.git .
-            fi
-            
-            # Create .env file from GitHub Secrets
+            git pull origin main || git clone https://github.com/sadaru2002/AlphaForge.git .
             echo "${{ secrets.ENV_FILE }}" > .env
-            
-            # Ensure data directory exists
             mkdir -p ~/alphaforge/data
-            
-            # Deploy with Docker Compose
-            # This handles stopping old containers, rebuilding, and starting new ones
             sudo docker compose up -d --build --remove-orphans
-            
-            # Clean up unused images
             sudo docker image prune -f
-            
             echo "Deployment complete!"
