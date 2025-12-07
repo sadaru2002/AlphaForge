@@ -14,8 +14,6 @@ from regime_detector import MarketRegimeDetector, MarketRegime
 from kelly_criterion import KellyCriterion
 from multi_timeframe_engine import MultiTimeframeEngine
 
-from notifications.telegram import TelegramNotifier
-
 # Load environment variables
 load_dotenv()
 
@@ -37,17 +35,6 @@ class AlphaForgeEnhancedStrategy:
         self.regime_detector = MarketRegimeDetector()
         self.kelly = KellyCriterion(lookback_trades=50, kelly_fraction=0.25)
         self.mtf_engine = MultiTimeframeEngine(api_key=self.oanda_api_key)
-        
-        # Initialize Telegram Notifier
-        self.telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
-        self.telegram_chat_id = os.getenv("TELEGRAM_CHAT_ID")
-        self.telegram = None
-        
-        if self.telegram_token and self.telegram_chat_id:
-            self.telegram = TelegramNotifier(self.telegram_token, self.telegram_chat_id)
-            logger.info("✅ Telegram notifications enabled")
-        else:
-            logger.warning("⚠️ Telegram credentials missing - notifications disabled")
         
         # Supported instruments
         self.instruments = ['GBP_USD', 'XAU_USD', 'USD_JPY']
@@ -113,29 +100,6 @@ class AlphaForgeEnhancedStrategy:
                 f"✅ Enhanced signal generated for {pair}: {signal['signal']} "
                 f"(score: {signal.get('score', 0):.3f}, confidence: {signal.get('confidence', 0):.3f})"
             )
-            
-            # Send Telegram Notification
-            if self.telegram:
-                try:
-                    # Format for Telegram Notifier
-                    notification_data = {
-                        'metadata': {'symbol': alphaforge_signal['symbol']},
-                        'setup_details': {'direction': alphaforge_signal['direction']},
-                        'risk_management': {
-                            'confidence_score': int(alphaforge_signal['confidence_score'] * 100),
-                            'setup_grade': 'A' if alphaforge_signal['confidence_score'] >= 0.8 else 'B'
-                        },
-                        'trade_parameters': {
-                            'entry_price': alphaforge_signal['entry'],
-                            'stop_loss': alphaforge_signal['stop_loss'],
-                            'take_profit_1': alphaforge_signal['take_profit'],
-                            'take_profit_1_rr': alphaforge_signal['risk_reward_ratio']
-                        }
-                    }
-                    await self.telegram.send_signal_notification(notification_data)
-                    logger.info(f"📲 Telegram notification sent for {pair}")
-                except Exception as e:
-                    logger.error(f"Failed to send Telegram notification: {e}")
             
             return alphaforge_signal
             

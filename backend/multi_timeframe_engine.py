@@ -28,9 +28,9 @@ class MultiTimeframeEngine:
             api_key: OANDA API key
             environment: "practice" or "live"
             min_votes_required: Minimum indicator votes needed for signal (default: 2.0)
-                                RELAXED: 2.5 → 2.0 for more signals
+                                STRICT: 3.0 for higher quality
             min_strength: Minimum signal strength percentage (default: 25.0)
-                         RELAXED: 35.0 → 25.0 for more signals
+                         STRICT: 50.0 for higher quality
         """
         self.api_key = api_key or os.getenv("OANDA_API_KEY")
         self.api = API(access_token=self.api_key, environment=environment)
@@ -683,7 +683,7 @@ class MultiTimeframeEngine:
         # ===== FILTER 1: Volatility Range (RELAXED) =====
         atr_pct = m5_analysis.get('atr_pct', 0)
         
-        # RELAXED: 0.05% → 0.02% minimum to catch smaller moves
+        # RELAXED: 0.02% minimum to catch more moves
         if 0.02 <= atr_pct <= 1.0:
             volatility_ok = True
         else:
@@ -701,7 +701,7 @@ class MultiTimeframeEngine:
         # ===== FILTER 3: ADX Trend Strength (RELAXED) =====
         adx = m5_analysis.get('adx', 0)
         
-        # RELAXED: 22 → 15 to catch weaker trends
+        # RELAXED: 15 minimum to catch more trends
         if signal_type in ['BUY', 'SELL']:
             if adx >= 15:
                 adx_ok = True

@@ -15,8 +15,6 @@ import os
 from regime_detector import MarketRegimeDetector, MarketRegime
 from kelly_criterion import KellyCriterion
 from multi_timeframe_engine import MultiTimeframeEngine
-from regime_classifier import RegimeClassifier  # NEW: Upgraded regime detection
-from instrument_config import InstrumentConfig  # NEW: Instrument-specific SL/TP
 
 logger = logging.getLogger(__name__)
 
@@ -34,16 +32,7 @@ class EnhancedSignalGenerator:
         # Core components
         self.regime_detector = MarketRegimeDetector()
         self.kelly_criterion = KellyCriterion(lookback_trades=50, kelly_fraction=0.25)
-        
-        # UPGRADED: Stricter parameters for 50%+ win rate
-        self.mtf_engine = MultiTimeframeEngine(
-            api_key=oanda_api_key, 
-            min_votes_required=0.0,  # RELAXED for debugging
-            min_strength=0.0         # RELAXED for debugging
-        )
-        
-        # NEW: Advanced regime classifier for STRONG_TREND filtering
-        self.regime_classifier = RegimeClassifier()
+        self.mtf_engine = MultiTimeframeEngine(api_key=oanda_api_key, min_votes_required=1.0, min_strength=15.0)
         
         # Supported instruments
         self.instruments = ['GBP_USD', 'XAU_USD', 'USD_JPY']
@@ -59,11 +48,11 @@ class EnhancedSignalGenerator:
             'SYDNEY': {'start': 22, 'end': 6, 'weight': 0.8}
         }
         
-        # Minimum signal thresholds (Kept at relaxed levels)
-        self.min_confidence = 0.0
-        self.min_agreement = 0.0
+        # Minimum signal thresholds (LOWERED for more signals)
+        self.min_confidence = 0.4  # Minimum multi-timeframe confidence (was 0.6)
+        self.min_agreement = 0.5  # Minimum 1/2 timeframe agreement (was 0.67)
         
-    async def generate_signal(self, instrument='GBP_USD', timestamp=None, provided_data=None):
+    async def generate_signal(self, instrument='GBP_USD'):
         """
         Generate trading signal with full AlphaForge enhancement.
         
@@ -78,55 +67,13 @@ class EnhancedSignalGenerator:
             return None
         
         try:
-            # Check if it's weekend (Forex markets are closed)
-            current_time = timestamp or datetime.now()
-            weekday = current_time.weekday()  # 0=Monday, 6=Sunday
-            
-            if weekday >= 5:  # Saturday (5) or Sunday (6)
-                logger.info(f"Weekend detected ({current_time.strftime('%A')}). Forex markets are closed - skipping signal generation.")
-                return {
-                    'instrument': instrument,
-                    'signal': 'SKIP',
-                    'regime': 'MARKET_CLOSED',
-                    'reason': f'Weekend - Forex markets closed ({current_time.strftime("%A, %Y-%m-%d")})',
-                    'tradeable': False,
-                    'timestamp': current_time.isoformat(),
-                    'weekend': True
-                }
-            
             # Step 1: Fetch multi-timeframe data
-            if provided_data:
-                # Use injected data for backtesting
-                mtf_data = provided_data
-            else:
-                # Fetch live data
-                logger.info(f"Fetching multi-timeframe data for {instrument}...")
-                mtf_data = await self.mtf_engine.fetch_multi_timeframe(instrument, to_time=timestamp)
+            logger.info(f"Fetching multi-timeframe data for {instrument}...")
+            mtf_data = await self.mtf_engine.fetch_multi_timeframe(instrument)
             
             if not mtf_data or 'M5' not in mtf_data:
                 logger.error(f"Failed to fetch data for {instrument}")
                 return None
-            
-            # Step 1.5: Check cooldown (4 hours)
-            # "Day Trading" focus - avoid spamming signals in same trend
-            last_signals = self.signal_history.get(instrument, [])
-            if last_signals:
-                last_sig = last_signals[-1]
-                last_time = datetime.fromisoformat(last_sig['timestamp'])
-                
-                # Use provided timestamp or current time for comparison
-                current_time = timestamp or datetime.now()
-                
-                # If last signal was tradeable and less than 4 hours ago
-                if last_sig.get('tradeable', False) and (current_time - last_time) < timedelta(hours=4) and (current_time - last_time).total_seconds() > 0:
-                    logger.info(f"Cooldown active for {instrument} (Last signal: {last_time.strftime('%H:%M')})")
-                    return {
-                        'instrument': instrument,
-                        'signal': 'SKIP',
-                        'reason': 'Cooldown active (4h)',
-                        'tradeable': False,
-                        'timestamp': current_time.isoformat()
-                    }
             
             # Step 2: Detect market regime (using M5 data)
             df_m5 = mtf_data['M5']
@@ -145,7 +92,7 @@ class EnhancedSignalGenerator:
                     'regime': regime.value,
                     'reason': 'Unfavorable market regime',
                     'tradeable': False,
-                    'timestamp': (timestamp or datetime.now()).isoformat()
+                    'timestamp': datetime.now().isoformat()
                 }
             
             # Step 4: Generate multi-timeframe signal WITH REGIME
@@ -175,17 +122,13 @@ class EnhancedSignalGenerator:
             )
 
             # Compute hypothetical levels even for rejected signals (for debugging/reporting)
-            # Use INSTRUMENT-SPECIFIC SL/TP from backtest results
-            try:
-                proposed_levels = InstrumentConfig.calculate_sltp(
-                    instrument, 
-                    current_price, 
-                    suggested_direction if suggested_direction in ['BUY', 'SELL'] else 'BUY'
-                )
-                proposed_sl = proposed_levels['stop_loss']
-                proposed_tp = proposed_levels['take_profit']
-            except:
-                # Fallback to current price if direction is invalid
+            if suggested_direction == 'BUY':
+                proposed_sl = current_price - (atr * 1.5)
+                proposed_tp = current_price + (atr * 3.0)
+            elif suggested_direction == 'SELL':
+                proposed_sl = current_price + (atr * 1.5)
+                proposed_tp = current_price - (atr * 3.0)
+            else:
                 proposed_sl = current_price
                 proposed_tp = current_price
 
@@ -193,14 +136,12 @@ class EnhancedSignalGenerator:
             if not mtf_signal['passed_filters']:
                 filter_reasons = mtf_signal['filter_results'].get('reasons', [])
                 logger.warning(f"Signal rejected by quality filters: {filter_reasons}")
-            # Step 6: Check signal strength (align with engine's threshold)
-            if mtf_signal['strength'] < 0:  # RELAXED
-                logger.warning(f"Low strength: {mtf_signal['strength']:.1f}%")
                 return {
                     'instrument': instrument,
                     'signal': 'SKIP',
                     'regime': regime.value,
-                    'reason': 'Signal strength below 25%',
+                    'reason': 'Failed quality filters',
+                    'filter_results': mtf_signal['filter_results'],
                     'mtf_signal': mtf_signal,
                     'tradeable': False,
                     # Price context for rejected signals
@@ -209,7 +150,26 @@ class EnhancedSignalGenerator:
                     'proposed_entry': current_price,
                     'proposed_stop_loss': proposed_sl,
                     'proposed_take_profit': proposed_tp,
-                    'timestamp': (timestamp or datetime.now()).isoformat()
+                    'timestamp': datetime.now().isoformat()
+                }
+            
+            # Step 6: Check signal strength (align with engine's lowered threshold)
+            if mtf_signal['strength'] < 15:  # LOWERED from 30 to 15 to allow more signals
+                logger.warning(f"Low strength: {mtf_signal['strength']:.1f}%")
+                return {
+                    'instrument': instrument,
+                    'signal': 'SKIP',
+                    'regime': regime.value,
+                    'reason': 'Signal strength below 15%',
+                    'mtf_signal': mtf_signal,
+                    'tradeable': False,
+                    # Price context for rejected signals
+                    'last_price': current_price,
+                    'suggested_direction': suggested_direction,
+                    'proposed_entry': current_price,
+                    'proposed_stop_loss': proposed_sl,
+                    'proposed_take_profit': proposed_tp,
+                    'timestamp': datetime.now().isoformat()
                 }
             
             if mtf_signal['agreement'] < self.min_agreement:
@@ -221,7 +181,7 @@ class EnhancedSignalGenerator:
                     'reason': 'Poor timeframe agreement',
                     'mtf_signal': mtf_signal,
                     'tradeable': False,
-                    'timestamp': (timestamp or datetime.now()).isoformat()
+                    'timestamp': datetime.now().isoformat()
                 }
             
             # Step 7: Calculate position sizing parameters
@@ -238,32 +198,18 @@ class EnhancedSignalGenerator:
             # Step 9: Calculate final signal strength (already calculated by voting system)
             final_strength = mtf_signal['strength']
             
-            # Step 10: Determine entry/exit levels (INSTRUMENT-SPECIFIC)
-            # FIX: Check for valid direction before calculating SL/TP
-            if mtf_signal['signal'] not in ['BUY', 'SELL']:
-                logger.info(f"Skipping SL/TP calculation for {instrument} due to signal: {mtf_signal['signal']}")
-                return {
-                    'instrument': instrument,
-                    'signal': 'SKIP',
-                    'reason': f"Signal direction is {mtf_signal['signal']}",
-                    'tradeable': False,
-                    'timestamp': (timestamp or datetime.now()).isoformat()
-                }
-
-            # NEW: Using backtest-optimized distances for each instrument
-            # XAU/USD: $4.50 SL / $10.50 TP (45/105 pips)
-            # GBP/USD: 12 pips SL / 25 pips TP
-            # USD/JPY: 17 pips SL / 52 pips TP
+            # Step 10: Determine entry/exit levels (ATR-based)
+            # Reuse computed values above
             
-            sltp_levels = InstrumentConfig.calculate_sltp(
-                instrument, 
-                current_price, 
-                mtf_signal['signal']
-            )
-            
-            stop_loss = sltp_levels['stop_loss']
-            take_profit = sltp_levels['take_profit']
-            actual_rr_ratio = sltp_levels['rr_ratio']
+            if mtf_signal['signal'] == 'BUY':
+                stop_loss = current_price - (atr * 1.5)
+                take_profit = current_price + (atr * 3.0)  # 1:2 RR
+            elif mtf_signal['signal'] == 'SELL':
+                stop_loss = current_price + (atr * 1.5)
+                take_profit = current_price - (atr * 3.0)  # 1:2 RR
+            else:
+                stop_loss = current_price
+                take_profit = current_price
             
             # Step 11: Build complete signal
             complete_signal = {
@@ -296,9 +242,7 @@ class EnhancedSignalGenerator:
                 'stop_loss': stop_loss,
                 'take_profit': take_profit,
                 'atr': atr,
-                'risk_reward_ratio': actual_rr_ratio,
-                'sl_pips': sltp_levels['sl_pips'],
-                'tp_pips': sltp_levels['tp_pips'],
+                'risk_reward_ratio': 2.0,
                 
                 # Session info
                 'session_weight': session_weight,
@@ -306,8 +250,7 @@ class EnhancedSignalGenerator:
                 
                 # Metadata
                 'tradeable': True,
-                'tradeable': True,
-                'timestamp': (timestamp or datetime.now()).isoformat(),
+                'timestamp': datetime.now().isoformat(),
                 'candles_analyzed': {
                     tf: len(df) for tf, df in mtf_data.items()
                 }
