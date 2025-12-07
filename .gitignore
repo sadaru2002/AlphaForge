@@ -135,3 +135,7 @@ start_system.py
 data_cache/
 __pycache__/
 .pytest_cache/
+
+# Large archive files
+*.tar
+backend.zip
