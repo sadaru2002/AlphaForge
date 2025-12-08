@@ -670,30 +670,18 @@ async def generate_enhanced_signals(db: Session = Depends(get_db)):
                 signal = await strategy.generate_signal_for_pair(pair)
                 
                 if signal:
-                    # Save to database
+                    # Save to database with correct model fields
                     db_signal = TradingSignal(
-                        pair=signal['pair'],
                         symbol=signal['symbol'],
                         direction=signal['direction'],
-                        entry_price=signal['entry'],
+                        entry=signal['entry'],
                         stop_loss=signal['stop_loss'],
-                        take_profit=signal['take_profit'],
+                        tp1=signal.get('take_profit', signal.get('tp1', 0)),
+                        tp2=signal.get('tp2'),
                         confidence_score=signal['confidence_score'],
-                        status=SignalStatus.PENDING,
-                        metadata={
-                            'regime': signal['market_regime'],
-                            'regime_tradeable': signal['regime_tradeable'],
-                            'position_multiplier': signal['position_multiplier'],
-                            'kelly_fraction': signal['kelly_fraction'],
-                            'recommended_risk': signal['recommended_risk'],
-                            'mtf_m5': signal['mtf_m5'],
-                            'mtf_m15': signal['mtf_m15'],
-                            'mtf_h1': signal['mtf_h1'],
-                            'agreement': signal['agreement'],
-                            'session_weight': signal['session_weight'],
-                            'atr': signal['atr'],
-                            'reasoning': signal['reasoning']
-                        }
+                        reasoning=str(signal.get('reasoning', '')),
+                        market_condition=signal.get('market_regime', 'unknown'),
+                        status=SignalStatus.PENDING
                     )
                     db.add(db_signal)
                     db.commit()
@@ -762,31 +750,18 @@ async def generate_enhanced_signal_for_pair(pair: str, db: Session = Depends(get
         signal = await strategy.generate_signal_for_pair(pair)
         
         if signal:
-            # Save to database
+            # Save to database with correct model fields
             db_signal = TradingSignal(
-                pair=signal['pair'],
                 symbol=signal['symbol'],
                 direction=signal['direction'],
-                entry_price=signal['entry'],
+                entry=signal['entry'],
                 stop_loss=signal['stop_loss'],
-                take_profit=signal['take_profit'],
+                tp1=signal.get('take_profit', signal.get('tp1', 0)),
+                tp2=signal.get('tp2'),
                 confidence_score=signal['confidence_score'],
-                status=SignalStatus.PENDING,
-                metadata={
-                    'regime': signal['market_regime'],
-                    'regime_tradeable': signal['regime_tradeable'],
-                    'position_multiplier': signal['position_multiplier'],
-                    'kelly_fraction': signal['kelly_fraction'],
-                    'recommended_risk': signal['recommended_risk'],
-                    'mtf_m5': signal['mtf_m5'],
-                    'mtf_m15': signal['mtf_m15'],
-                    'mtf_h1': signal['mtf_h1'],
-                    'agreement': signal['agreement'],
-                    'session_weight': signal['session_weight'],
-                    'atr': signal['atr'],
-                    'reasoning': signal['reasoning'],
-                    'strategy_version': signal['strategy_version']
-                }
+                reasoning=str(signal.get('reasoning', '')),
+                market_condition=signal.get('market_regime', 'unknown'),
+                status=SignalStatus.PENDING
             )
             db.add(db_signal)
             db.commit()
