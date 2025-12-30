@@ -32,7 +32,7 @@ class EnhancedSignalGenerator:
         # Core components
         self.regime_detector = MarketRegimeDetector()
         self.kelly_criterion = KellyCriterion(lookback_trades=50, kelly_fraction=0.25)
-        self.mtf_engine = MultiTimeframeEngine(api_key=oanda_api_key, min_votes_required=3.0, min_strength=40.0)
+        self.mtf_engine = MultiTimeframeEngine(api_key=oanda_api_key, min_votes_required=1.0, min_strength=15.0)
         
         # Supported instruments
         self.instruments = ['GBP_USD', 'XAU_USD', 'USD_JPY']
@@ -48,9 +48,9 @@ class EnhancedSignalGenerator:
             'SYDNEY': {'start': 22, 'end': 6, 'weight': 0.8}
         }
         
-        # Minimum signal thresholds (STRICT for quality signals ~5/day)
-        self.min_confidence = 0.65  # High MTF confidence required
-        self.min_agreement = 0.7  # 2/3 timeframe agreement required
+        # Minimum signal thresholds (LOWERED for more signals)
+        self.min_confidence = 0.4  # Minimum multi-timeframe confidence (was 0.6)
+        self.min_agreement = 0.5  # Minimum 1/2 timeframe agreement (was 0.67)
         
     async def generate_signal(self, instrument='GBP_USD'):
         """

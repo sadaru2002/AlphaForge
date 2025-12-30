@@ -122,11 +122,7 @@ temp_test_output.txt
 *.db
 *.backup.*
 
-# Scripts
-*.bat
-*.ps1
-*.sh
-start_system.py
+
 
 # Docker
 # docker-compose.yml

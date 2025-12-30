@@ -2,7 +2,7 @@ import requests
 import time
 import sys
 
-TOKEN = "8333329847:AAG4sk5BMZWs-h07cRx0Y69qiK-I9NrJcrs"
+TOKEN = "8472623982:AAGkT6g_dIJsRhqXyQ0Wo75dsCQMjFLG5tA"
 URL = f"https://api.telegram.org/bot{TOKEN}/getUpdates"
 
 print("="*60)
