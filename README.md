@@ -2,7 +2,7 @@
 
 **Institutional-Grade Algorithmic Trading System powered by Python, Docker, and Gemini AI.**
 
-AlphaForge is a sophisticated automated trading platform designed for the OANDA brokerage ecosystem. It leverages multi-timeframe technical analysis, adaptive market regime detection, and Large Language Model (LLM) validation to generate high-probability trading signals.
+AlphaForge is a sophisticated automated trading platform designed using the OANDA brokerage Api. It leverages multi-timeframe technical analysis, adaptive market regime detection, and Large Language Model (LLM) validation to generate high-probability trading signals.
 
 ![System Status](https://img.shields.io/badge/System-Operational-green)
 ![Python](https://img.shields.io/badge/Backend-Python_3.11-blue)
