@@ -59,9 +59,12 @@ class ApiService {
       setup_type: backendSignal.setup_type,
       daily_bias: backendSignal.daily_bias,
       position_size: backendSignal.position_size,
+      status: backendSignal.status,  // WON, LOST, EXPIRED, PENDING, etc.
       outcome: backendSignal.outcome,
       actual_pnl: backendSignal.actual_pnl,
       was_traded: backendSignal.was_traded,
+      exit_price: backendSignal.exit_price,
+      exit_time: backendSignal.exit_time,
       // Use pips from backend if available, otherwise calculate
       tp1_pips: backendSignal.tp1_pips || (backendSignal.tp1 ? Math.abs(backendSignal.tp1 - backendSignal.entry) * 10000 : 0),
       tp2_pips: backendSignal.tp2_pips || (backendSignal.tp2 ? Math.abs(backendSignal.tp2 - backendSignal.entry) * 10000 : 0),
@@ -71,6 +74,7 @@ class ApiService {
       reasoning: backendSignal.reasoning || backendSignal.gemini_reasoning
     };
   }
+
 
   transformPrices(backendPrices) {
     const transformed = {};
