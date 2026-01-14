@@ -698,15 +698,15 @@ class MultiTimeframeEngine:
         else:
             reasons.append(f"Signal strength too weak: {strength:.1f}% (need {self.min_strength}%+)")
         
-        # ===== FILTER 3: ADX Trend Strength (RELAXED) =====
+        # ===== FILTER 3: ADX Trend Strength (ORIGINAL STRICT) =====
         adx = m5_analysis.get('adx', 0)
         
-        # RELAXED: 20 minimum for trend confirmation (was 25)
+        # STRICT: 25 minimum for trend confirmation
         if signal_type in ['BUY', 'SELL']:
-            if adx >= 20:
+            if adx >= 25:
                 adx_ok = True
             else:
-                reasons.append(f"Weak trend (ADX={adx:.1f}, need 20+)")
+                reasons.append(f"Weak trend (ADX={adx:.1f}, need 25+)")
         
         # ===== FILTER 4: Spread Check (Simulated) =====
         # In production, you'd check actual spread from broker

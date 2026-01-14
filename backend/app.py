@@ -337,6 +337,142 @@ async def get_symbol_performance(days: int = 30, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error calculating performance: {str(e)}")
 
 
+@app.put("/api/signals/{signal_id}/status")
+async def update_signal_status_endpoint(signal_id: int, status: str, exit_price: float = None, db: Session = Depends(get_db)):
+    """Update signal status (WON, LOST, EXPIRED, PENDING, ACTIVE, CLOSED)"""
+    valid_statuses = ['WON', 'LOST', 'EXPIRED', 'PENDING', 'ACTIVE', 'CLOSED', 'CANCELLED']
+    if status.upper() not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Invalid status: {status}. Valid: {valid_statuses}")
+    
+    try:
+        signal = SignalCRUD.update_signal_status(db, signal_id, SignalStatus[status.upper()])
+        if not signal:
+            raise HTTPException(status_code=404, detail="Signal not found")
+        
+        # Update exit_price if provided
+        if exit_price is not None:
+            signal.exit_price = exit_price
+            signal.exit_time = datetime.utcnow()
+            db.commit()
+            db.refresh(signal)
+        
+        return {"success": True, "signal": signal.to_dict()}
+    except KeyError:
+        raise HTTPException(status_code=400, detail=f"Invalid status: {status}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/signals/check-outcomes")
+async def check_signal_outcomes(db: Session = Depends(get_db)):
+    """
+    Check PENDING signals against current prices and update status.
+    - WON: If TP was hit
+    - LOST: If SL was hit
+    - EXPIRED: If signal is older than 4 hours with no TP/SL hit
+    """
+    import os
+    from oandapyV20 import API
+    from oandapyV20.endpoints.pricing import PricingInfo
+    
+    OANDA_API_KEY = os.getenv("OANDA_API_KEY")
+    OANDA_ACCOUNT_ID = os.getenv("OANDA_ACCOUNT_ID")
+    OANDA_ENVIRONMENT = os.getenv("OANDA_ENVIRONMENT", "practice")
+    
+    SYMBOL_TO_INSTRUMENT = {
+        'GBP/USD': 'GBP_USD',
+        'GOLD': 'XAU_USD',
+        'USD/JPY': 'USD_JPY'
+    }
+    
+    try:
+        api = API(access_token=OANDA_API_KEY, environment=OANDA_ENVIRONMENT)
+        
+        # Get all PENDING signals
+        pending_signals = SignalCRUD.get_signals_by_status(db, SignalStatus.PENDING)
+        
+        results = {
+            'checked': 0,
+            'won': 0,
+            'lost': 0,
+            'expired': 0,
+            'details': []
+        }
+        
+        for signal in pending_signals:
+            results['checked'] += 1
+            
+            # Check expiration (4 hours)
+            if signal.timestamp:
+                age = datetime.utcnow() - signal.timestamp
+                if age.total_seconds() > 4 * 3600:
+                    signal.status = SignalStatus.EXPIRED
+                    db.commit()
+                    results['expired'] += 1
+                    results['details'].append({
+                        'id': signal.id,
+                        'symbol': signal.symbol,
+                        'status': 'EXPIRED',
+                        'reason': '4 hours elapsed'
+                    })
+                    continue
+            
+            # Get current price
+            instrument = SYMBOL_TO_INSTRUMENT.get(signal.symbol)
+            if not instrument:
+                continue
+            
+            try:
+                params = {"instruments": instrument}
+                r = PricingInfo(accountID=OANDA_ACCOUNT_ID, params=params)
+                response = api.request(r)
+                
+                if response and 'prices' in response and len(response['prices']) > 0:
+                    price_data = response['prices'][0]
+                    current_price = (float(price_data['bids'][0]['price']) + float(price_data['asks'][0]['price'])) / 2
+                    
+                    # Check TP/SL hit
+                    entry = signal.entry
+                    tp = signal.tp1
+                    sl = signal.stop_loss
+                    direction = signal.direction.upper()
+                    
+                    if direction == 'BUY':
+                        if current_price >= tp:
+                            signal.status = SignalStatus.WON
+                            signal.exit_price = current_price
+                            signal.exit_time = datetime.utcnow()
+                            results['won'] += 1
+                            results['details'].append({'id': signal.id, 'symbol': signal.symbol, 'status': 'WON', 'exit_price': current_price})
+                        elif current_price <= sl:
+                            signal.status = SignalStatus.LOST
+                            signal.exit_price = current_price
+                            signal.exit_time = datetime.utcnow()
+                            results['lost'] += 1
+                            results['details'].append({'id': signal.id, 'symbol': signal.symbol, 'status': 'LOST', 'exit_price': current_price})
+                    elif direction == 'SELL':
+                        if current_price <= tp:
+                            signal.status = SignalStatus.WON
+                            signal.exit_price = current_price
+                            signal.exit_time = datetime.utcnow()
+                            results['won'] += 1
+                            results['details'].append({'id': signal.id, 'symbol': signal.symbol, 'status': 'WON', 'exit_price': current_price})
+                        elif current_price >= sl:
+                            signal.status = SignalStatus.LOST
+                            signal.exit_price = current_price
+                            signal.exit_time = datetime.utcnow()
+                            results['lost'] += 1
+                            results['details'].append({'id': signal.id, 'symbol': signal.symbol, 'status': 'LOST', 'exit_price': current_price})
+                    
+                    db.commit()
+            except Exception as price_error:
+                print(f"Error fetching price for {signal.symbol}: {price_error}")
+                continue
+        
+        return {"success": True, "results": results}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # DEPRECATED: This endpoint used the old oanda_integration module
 # Frontend doesn't use this endpoint - commented out after cleanup
 # @app.get("/api/price/{symbol}")
@@ -667,37 +803,107 @@ async def generate_enhanced_signals(db: Session = Depends(get_db)):
         
         for pair in pairs:
             try:
+                # === DUPLICATE SIGNAL PREVENTION ===
+                # Map pair to symbol used in DB (Must match enhanced_strategy_integration.py)
+                symbol_map = {
+                    'GBP_USD': 'GBP/USD',
+                    'XAU_USD': 'GOLD',
+                    'USD_JPY': 'USD/JPY'
+                }
+                symbol = symbol_map.get(pair, pair.replace('_', '/'))
+                
+                logger.info(f"🔍 Checking duplicates for {pair} (Symbol: {symbol})")
+                
+                # Check 1: Skip if PENDING signal already exists for this pair
+                pending_signal = db.query(TradingSignal).filter(
+                    TradingSignal.symbol == symbol,
+                    TradingSignal.status == SignalStatus.PENDING
+                ).first()
+                
+                if pending_signal:
+                    results.append({
+                        "pair": pair,
+                        "generated": False,
+                        "reason": f"PENDING signal already exists (ID: {pending_signal.id})"
+                    })
+                    logger.info(f"⏭️  {pair}: Skipped - PENDING signal exists (ID: {pending_signal.id})")
+                    continue
+                
+                # Check 2: Skip if signal generated within cooldown period
+                from datetime import datetime, timedelta
+                cooldown_minutes = 25
+                cutoff_time = datetime.utcnow() - timedelta(minutes=cooldown_minutes)
+                
+                recent_signal = db.query(TradingSignal).filter(
+                    TradingSignal.symbol == symbol,
+                    TradingSignal.timestamp >= cutoff_time
+                ).first()
+                
+                if recent_signal:
+                    minutes_ago = (datetime.utcnow() - recent_signal.timestamp).total_seconds() / 60
+                    logger.info(f"Found recent signal ID: {recent_signal.id} from {recent_signal.timestamp} ({minutes_ago:.1f}m ago)")
+                    
+                    results.append({
+                        "pair": pair,
+                        "generated": False,
+                        "reason": f"Signal generated {minutes_ago:.0f} min ago (cooldown: {cooldown_minutes} min)"
+                    })
+                    logger.info(f"⏭️  {pair}: Skipped - Signal generated {minutes_ago:.0f} min ago (ID: {recent_signal.id})")
+                    continue
+                
+                # === END DUPLICATE PREVENTION ===
+                
                 signal = await strategy.generate_signal_for_pair(pair)
                 
                 if signal:
-                    # Save to database
+                    # Save to database - FIXED: Use correct field names from signal_models.py
                     db_signal = TradingSignal(
-                        pair=signal['pair'],
                         symbol=signal['symbol'],
                         direction=signal['direction'],
-                        entry_price=signal['entry'],
+                        entry=signal['entry'],
                         stop_loss=signal['stop_loss'],
-                        take_profit=signal['take_profit'],
+                        tp1=signal['take_profit'],
                         confidence_score=signal['confidence_score'],
                         status=SignalStatus.PENDING,
-                        metadata={
-                            'regime': signal['market_regime'],
-                            'regime_tradeable': signal['regime_tradeable'],
-                            'position_multiplier': signal['position_multiplier'],
-                            'kelly_fraction': signal['kelly_fraction'],
-                            'recommended_risk': signal['recommended_risk'],
-                            'mtf_m5': signal['mtf_m5'],
-                            'mtf_m15': signal['mtf_m15'],
-                            'mtf_h1': signal['mtf_h1'],
-                            'agreement': signal['agreement'],
-                            'session_weight': signal['session_weight'],
-                            'atr': signal['atr'],
-                            'reasoning': signal['reasoning']
-                        }
+                        # Store enhanced metadata in available fields
+                        market_condition=signal.get('market_regime', 'UNKNOWN'),
+                        reasoning=signal.get('reasoning', ''),
+                        signal_strength='STRONG' if signal.get('confidence_score', 0) > 70 else 'MEDIUM' if signal.get('confidence_score', 0) > 50 else 'WEAK',
+                        notes=f"Regime: {signal.get('market_regime')}, Agreement: {signal.get('agreement', 0):.2f}, Kelly: {signal.get('kelly_fraction', 0):.3f}"
                     )
                     db.add(db_signal)
                     db.commit()
                     db.refresh(db_signal)
+                    
+                    # === SEND TELEGRAM NOTIFICATION ===
+                    try:
+                        telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
+                        telegram_chat_id = os.getenv("TELEGRAM_CHAT_ID")
+                        
+                        if telegram_token and telegram_chat_id:
+                            import requests
+                            telegram_msg = (
+                                f"🚨 <b>NEW SIGNAL ALERT</b> 🚨\n\n"
+                                f"📊 <b>{signal['symbol']}</b>\n"
+                                f"📈 Direction: <b>{signal['direction']}</b>\n"
+                                f"💰 Entry: {signal['entry']:.5f}\n"
+                                f"🛡️ Stop Loss: {signal['stop_loss']:.5f}\n"
+                                f"🎯 Take Profit: {signal['take_profit']:.5f}\n"
+                                f"📊 Confidence: {signal['confidence_score']:.1f}%\n"
+                                f"🌐 Regime: {signal.get('market_regime', 'N/A')}\n"
+                                f"⏰ Time: {datetime.now().strftime('%H:%M:%S UTC')}"
+                            )
+                            
+                            telegram_url = f"https://api.telegram.org/bot{telegram_token}/sendMessage"
+                            requests.post(telegram_url, data={
+                                "chat_id": telegram_chat_id,
+                                "text": telegram_msg,
+                                "parse_mode": "HTML"
+                            }, timeout=5)
+                            logger.info(f"📱 Telegram notification sent for {pair}")
+                    except Exception as tg_error:
+                        logger.warning(f"⚠️ Telegram notification failed: {tg_error}")
+                    # === END TELEGRAM NOTIFICATION ===
                     
                     success_count += 1
                     results.append({
@@ -762,31 +968,20 @@ async def generate_enhanced_signal_for_pair(pair: str, db: Session = Depends(get
         signal = await strategy.generate_signal_for_pair(pair)
         
         if signal:
-            # Save to database
+            # Save to database - FIXED: Use correct field names from signal_models.py
             db_signal = TradingSignal(
-                pair=signal['pair'],
                 symbol=signal['symbol'],
                 direction=signal['direction'],
-                entry_price=signal['entry'],
+                entry=signal['entry'],
                 stop_loss=signal['stop_loss'],
-                take_profit=signal['take_profit'],
+                tp1=signal['take_profit'],
                 confidence_score=signal['confidence_score'],
                 status=SignalStatus.PENDING,
-                metadata={
-                    'regime': signal['market_regime'],
-                    'regime_tradeable': signal['regime_tradeable'],
-                    'position_multiplier': signal['position_multiplier'],
-                    'kelly_fraction': signal['kelly_fraction'],
-                    'recommended_risk': signal['recommended_risk'],
-                    'mtf_m5': signal['mtf_m5'],
-                    'mtf_m15': signal['mtf_m15'],
-                    'mtf_h1': signal['mtf_h1'],
-                    'agreement': signal['agreement'],
-                    'session_weight': signal['session_weight'],
-                    'atr': signal['atr'],
-                    'reasoning': signal['reasoning'],
-                    'strategy_version': signal['strategy_version']
-                }
+                # Store enhanced metadata in available fields
+                market_condition=signal.get('market_regime', 'UNKNOWN'),
+                reasoning=signal.get('reasoning', ''),
+                signal_strength='STRONG' if signal.get('confidence_score', 0) > 70 else 'MEDIUM' if signal.get('confidence_score', 0) > 50 else 'WEAK',
+                notes=f"Regime: {signal.get('market_regime')}, Agreement: {signal.get('agreement', 0):.2f}, Kelly: {signal.get('kelly_fraction', 0):.3f}"
             )
             db.add(db_signal)
             db.commit()

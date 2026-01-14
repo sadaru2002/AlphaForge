@@ -50,7 +50,7 @@ class EnhancedSignalGenerator:
         
         # Minimum signal thresholds (LOWERED for more signals)
         self.min_confidence = 0.4  # Minimum multi-timeframe confidence (was 0.6)
-        self.min_agreement = 0.5  # Minimum 1/2 timeframe agreement (was 0.67)
+        self.min_agreement = 0.5  # Minimum 2/3 timeframe agreement (ORIGINAL)
         
     async def generate_signal(self, instrument='GBP_USD'):
         """
