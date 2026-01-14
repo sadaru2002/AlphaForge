@@ -34,8 +34,8 @@ const Signals = () => {
     // Status filter
     if (filter === 'active' && signal.status !== 'ACTIVE') return false;
     if (filter === 'closed' && signal.status !== 'CLOSED') return false;
-    if (filter === 'winners' && signal.outcome !== 'WIN') return false;
-    if (filter === 'losers' && signal.outcome === 'LOSS') return false;
+    if (filter === 'winners' && signal.status !== 'WON') return false;
+    if (filter === 'losers' && signal.status !== 'LOST') return false;
 
     // Symbol filter
     if (symbolFilter !== 'all' && signal.symbol !== symbolFilter) return false;
@@ -58,17 +58,19 @@ const Signals = () => {
   // Calculate statistics
   const stats = {
     total: signals.length,
-    active: signals.filter(s => s.status === 'ACTIVE').length,
-    closed: signals.filter(s => s.status === 'CLOSED').length,
-    winners: signals.filter(s => s.outcome === 'WIN').length,
-    losers: signals.filter(s => s.outcome === 'LOSS').length,
-    winRate: signals.length > 0 ? ((signals.filter(s => s.outcome === 'WIN').length / signals.filter(s => s.outcome).length) * 100).toFixed(1) : 0,
-    totalProfit: signals.reduce((sum, s) => sum + (s.actual_pnl || 0), 0),
-    avgProfit: signals.filter(s => s.outcome === 'WIN').length > 0
-      ? (signals.filter(s => s.outcome === 'WIN').reduce((sum, s) => sum + (s.actual_pnl || 0), 0) / signals.filter(s => s.outcome === 'WIN').length).toFixed(2)
+    active: signals.filter(s => s.status === 'ACTIVE' || s.status === 'PENDING').length,
+    closed: signals.filter(s => s.status === 'CLOSED' || s.status === 'WON' || s.status === 'LOST' || s.status === 'EXPIRED').length,
+    winners: signals.filter(s => s.status === 'WON').length,
+    losers: signals.filter(s => s.status === 'LOST').length,
+    winRate: (signals.filter(s => s.status === 'WON').length + signals.filter(s => s.status === 'LOST').length) > 0
+      ? ((signals.filter(s => s.status === 'WON').length / (signals.filter(s => s.status === 'WON').length + signals.filter(s => s.status === 'LOST').length)) * 100).toFixed(1)
       : 0,
-    avgLoss: signals.filter(s => s.outcome === 'LOSS').length > 0
-      ? (signals.filter(s => s.outcome === 'LOSS').reduce((sum, s) => sum + (s.actual_pnl || 0), 0) / signals.filter(s => s.outcome === 'LOSS').length).toFixed(2)
+    totalProfit: signals.reduce((sum, s) => sum + (s.actual_pnl || 0), 0),
+    avgProfit: signals.filter(s => s.status === 'WON').length > 0
+      ? (signals.filter(s => s.status === 'WON').reduce((sum, s) => sum + (s.actual_pnl || 0), 0) / signals.filter(s => s.status === 'WON').length).toFixed(2)
+      : 0,
+    avgLoss: signals.filter(s => s.status === 'LOST').length > 0
+      ? (signals.filter(s => s.status === 'LOST').reduce((sum, s) => sum + (s.actual_pnl || 0), 0) / signals.filter(s => s.status === 'LOST').length).toFixed(2)
       : 0,
   };
 
@@ -362,6 +364,9 @@ const SignalRow = ({ signal, onClick }) => {
       ACTIVE: 'bg-yellow-500/20 text-yellow-400',
       CLOSED: 'bg-gray-500/20 text-gray-400',
       PENDING: 'bg-blue-500/20 text-blue-400',
+      WON: 'bg-green-500/20 text-green-400',
+      LOST: 'bg-red-500/20 text-red-400',
+      EXPIRED: 'bg-orange-500/20 text-orange-400',
     };
     return badges[status] || badges.PENDING;
   };

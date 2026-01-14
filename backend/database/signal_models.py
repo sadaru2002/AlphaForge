@@ -15,7 +15,9 @@ class SignalStatus(enum.Enum):
     ACTIVE = "ACTIVE"         # Trade is active
     CLOSED = "CLOSED"         # Trade closed
     CANCELLED = "CANCELLED"   # Signal cancelled before entry
-    EXPIRED = "EXPIRED"       # Signal expired without entry
+    EXPIRED = "EXPIRED"       # Signal expired without entry (4 hours elapsed)
+    WON = "WON"               # Take Profit hit
+    LOST = "LOST"             # Stop Loss hit
 
 
 class TradeOutcome(enum.Enum):
