@@ -9,6 +9,7 @@ const Signals = () => {
   const [symbolFilter, setSymbolFilter] = useState('all');
   const [sortBy, setSortBy] = useState('timestamp'); // timestamp, profit, duration
   const [selectedSignal, setSelectedSignal] = useState(null);
+  const [serverStats, setServerStats] = useState(null); // Server-calculated statistics
 
   useEffect(() => {
     fetchSignals();
@@ -22,6 +23,10 @@ const Signals = () => {
     try {
       const response = await apiService.getSignals();
       setSignals(response.signals || []);
+      // Use server-calculated statistics if available
+      if (response.statistics) {
+        setServerStats(response.statistics);
+      }
     } catch (error) {
       console.error('Error fetching signals:', error);
     } finally {
@@ -54,9 +59,18 @@ const Signals = () => {
     }
     return 0;
   });
-
-  // Calculate statistics
-  const stats = {
+  // Use server-calculated statistics when available, fallback to local calculation
+  const stats = serverStats ? {
+    total: serverStats.total || signals.length,
+    active: serverStats.active || 0,
+    closed: serverStats.closed || 0,
+    winners: serverStats.winners || 0,
+    losers: serverStats.losers || 0,
+    winRate: serverStats.winRate || 0,
+    totalProfit: serverStats.totalPnL || 0,
+    avgProfit: 0,
+    avgLoss: 0,
+  } : {
     total: signals.length,
     active: signals.filter(s => s.status === 'ACTIVE' || s.status === 'PENDING').length,
     closed: signals.filter(s => s.status === 'CLOSED' || s.status === 'WON' || s.status === 'LOST' || s.status === 'EXPIRED').length,

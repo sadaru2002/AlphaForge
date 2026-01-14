@@ -199,19 +199,42 @@ async def get_status():
         "timestamp": datetime.now().isoformat()
     }
 
-
 @app.get("/signals")
 async def get_signals(db: Session = Depends(get_db)):
-    """Get recent trading signals (legacy endpoint)"""
+    """Get recent trading signals with pre-calculated statistics"""
     try:
         signals = SignalCRUD.get_all_signals(db, limit=100)
+        signal_dicts = [signal.to_dict() for signal in signals]
+        
+        # Calculate statistics server-side
+        winners = sum(1 for s in signal_dicts if s.get('status') == 'WON')
+        losers = sum(1 for s in signal_dicts if s.get('status') == 'LOST')
+        expired = sum(1 for s in signal_dicts if s.get('status') == 'EXPIRED')
+        pending = sum(1 for s in signal_dicts if s.get('status') == 'PENDING')
+        active = sum(1 for s in signal_dicts if s.get('status') == 'ACTIVE')
+        closed = sum(1 for s in signal_dicts if s.get('status') in ['CLOSED', 'WON', 'LOST', 'EXPIRED'])
+        
+        total_decided = winners + losers
+        win_rate = round((winners / total_decided * 100), 1) if total_decided > 0 else 0
+        
         return {
-            "signals": [signal.to_dict() for signal in signals],
-            "count": len(signals)
+            "signals": signal_dicts,
+            "count": len(signals),
+            "statistics": {
+                "total": len(signals),
+                "active": active + pending,
+                "closed": closed,
+                "winners": winners,
+                "losers": losers,
+                "expired": expired,
+                "pending": pending,
+                "winRate": win_rate,
+                "totalPnL": sum(s.get('actual_pnl', 0) or 0 for s in signal_dicts)
+            }
         }
     except Exception as e:
         print(f"Error fetching signals: {e}")
-        return {"signals": [], "count": 0}
+        return {"signals": [], "count": 0, "statistics": {"total": 0, "winners": 0, "losers": 0, "winRate": 0}}
 
 
 @app.get("/api/signals/today")
