@@ -5,16 +5,16 @@ const SignalCard = ({ signal }) => {
   const [copied, setCopied] = useState(false);
   const isBuy = signal.direction === 'BUY';
   const isNoTrade = signal.direction === 'NO_TRADE';
-  
+
   // Calculate pips for display
   const calculatePips = (price1, price2) => {
     return Math.abs((price1 - price2) * 10000).toFixed(1);
   };
-  
+
   const slPips = calculatePips(signal.entry, signal.stop_loss);
   const tp1Pips = calculatePips(signal.entry, signal.tp1);
   const tp2Pips = calculatePips(signal.entry, signal.tp2);
-  
+
   // Determine confidence badge color
   const getConfidenceBadge = (confidence) => {
     if (confidence >= 85) return 'badge badge-success';
@@ -34,7 +34,7 @@ Confidence: ${signal.confidence_score}%
 Strength: ${signal.signal_strength}
 ${signal.reasoning ? `\nAnalysis: ${signal.reasoning}` : ''}
     `.trim();
-    
+
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -42,7 +42,7 @@ ${signal.reasoning ? `\nAnalysis: ${signal.reasoning}` : ''}
 
   const borderClass = isBuy ? 'signal-buy' : isNoTrade ? 'signal-neutral' : 'signal-sell';
   const directionColor = isBuy ? 'text-accent-primary' : isNoTrade ? 'text-text-muted' : 'text-accent-danger';
-  
+
   // Status badge
   const getStatusBadge = () => {
     const status = signal.status || 'PENDING';
@@ -112,7 +112,7 @@ ${signal.reasoning ? `\nAnalysis: ${signal.reasoning}` : ''}
               {slPips} pips
             </p>
           </div>
-          
+
           <div className="bg-bg-elevated rounded-lg p-4 border border-border-subtle hover:border-accent-primary transition-smooth">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-accent-primary">📍</span>
@@ -125,7 +125,7 @@ ${signal.reasoning ? `\nAnalysis: ${signal.reasoning}` : ''}
               {tp1Pips} pips • {signal.rr_ratio || '1:2'} RR
             </p>
           </div>
-          
+
           <div className="bg-bg-elevated rounded-lg p-4 border border-border-subtle hover:border-accent-success transition-smooth">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-accent-success">📍</span>
@@ -178,16 +178,69 @@ ${signal.reasoning ? `\nAnalysis: ${signal.reasoning}` : ''}
             🤖 Gemini AI Analysis:
           </p>
           <p className="text-small text-text-secondary leading-relaxed">
-            {signal.reasoning.length > 200 
-              ? `${signal.reasoning.substring(0, 200)}...` 
+            {signal.reasoning.length > 200
+              ? `${signal.reasoning.substring(0, 200)}...`
               : signal.reasoning}
           </p>
         </div>
       )}
 
+      {/* Status Update Buttons - Only show for PENDING signals */}
+      {(signal.status === 'PENDING' || signal.status === 'pending') && !isNoTrade && (
+        <div className="border-t border-border-subtle pt-4 mb-4">
+          <p className="text-small font-semibold text-text-secondary mb-3">
+            📊 Mark Signal Result:
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={() => {
+                if (window.confirm('Mark this signal as WON?')) {
+                  import('../services/api').then(module => {
+                    module.default.updateSignalStatus(signal.id, 'WON')
+                      .then(() => window.location.reload())
+                      .catch(err => alert('Error: ' + err.message));
+                  });
+                }
+              }}
+              className="btn bg-accent-success text-white text-small font-semibold py-2 px-3 rounded-lg hover:opacity-80 transition-smooth"
+            >
+              ✅ WON
+            </button>
+            <button
+              onClick={() => {
+                if (window.confirm('Mark this signal as LOST?')) {
+                  import('../services/api').then(module => {
+                    module.default.updateSignalStatus(signal.id, 'LOST')
+                      .then(() => window.location.reload())
+                      .catch(err => alert('Error: ' + err.message));
+                  });
+                }
+              }}
+              className="btn bg-accent-danger text-white text-small font-semibold py-2 px-3 rounded-lg hover:opacity-80 transition-smooth"
+            >
+              ❌ LOST
+            </button>
+            <button
+              onClick={() => {
+                if (window.confirm('Mark this signal as EXPIRED?')) {
+                  import('../services/api').then(module => {
+                    module.default.updateSignalStatus(signal.id, 'EXPIRED')
+                      .then(() => window.location.reload())
+                      .catch(err => alert('Error: ' + err.message));
+                  });
+                }
+              }}
+              className="btn bg-text-muted text-white text-small font-semibold py-2 px-3 rounded-lg hover:opacity-80 transition-smooth"
+            >
+              ⏰ EXPIRED
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Action Button */}
       {!isNoTrade && (
-        <button 
+        <button
           onClick={handleCopy}
           className="btn-primary w-full text-body font-semibold"
         >

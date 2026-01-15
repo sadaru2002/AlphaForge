@@ -293,9 +293,8 @@ class ApiService {
   }
 
   async updateSignalStatus(signalId, status) {
-    return this.request(`/api/signals/${signalId}/status`, {
-      method: 'PUT',
-      body: JSON.stringify({ status })
+    return this.request(`/api/signals/${signalId}/status?status=${status}`, {
+      method: 'PUT'
     });
   }
 
