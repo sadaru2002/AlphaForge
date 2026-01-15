@@ -881,18 +881,23 @@ async def generate_enhanced_signals(db: Session = Depends(get_db)):
                     TradingSignal.status == SignalStatus.PENDING
                 ).first()
                 
-                if pending_signal:
-                    results.append({
-                        "pair": pair,
-                        "generated": False,
-                        "reason": f"PENDING signal already exists (ID: {pending_signal.id})"
-                    })
-                    logger.info(f"⏭️  {pair}: Skipped - PENDING signal exists (ID: {pending_signal.id})")
-                    continue
+                # DISABLED: Pending signal check - signals can now generate freely
+                # if pending_signal:
+                #     results.append({
+                #         "pair": pair,
+                #         "generated": False,
+                #         "reason": f"PENDING signal already exists (ID: {pending_signal.id})"
+                #     })
+                #     logger.info(f"⏭️  {pair}: Skipped - PENDING signal exists (ID: {pending_signal.id})")
+                #     continue
                 
-                # Check 2: Skip if signal generated within cooldown period
+                # Log pending signal info but don't block
+                if pending_signal:
+                    logger.info(f"ℹ️  {pair}: Note - PENDING signal exists (ID: {pending_signal.id}) - continuing anyway")
+                
+                # Check 2: Skip if signal generated within cooldown period (1 hour)
                 from datetime import datetime, timedelta
-                cooldown_minutes = 25
+                cooldown_minutes = 60  # Changed from 25 to 60 minutes (1 hour)
                 cutoff_time = datetime.utcnow() - timedelta(minutes=cooldown_minutes)
                 
                 recent_signal = db.query(TradingSignal).filter(
